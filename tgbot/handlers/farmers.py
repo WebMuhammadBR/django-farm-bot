@@ -1,11 +1,11 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from tgbot.services.api_client import get_farmers
-from tgbot.keyboards import farmers_pagination_keyboard
-from tgbot.middlewares.access import access_required
+from aiogram.types import Message, CallbackQuery, BufferedInputFile
+
 from tgbot.services.api_client import get_farmers
 from tgbot.excel_export import farmers_to_excel
-from aiogram.types import BufferedInputFile
+from tgbot.keyboards import farmers_pagination_keyboard
+from tgbot.middlewares.access import access_required
+from tgbot.services.pagination import build_page_text, paginate_data
 
 router = Router()
 PER_PAGE = 25
@@ -26,24 +26,17 @@ async def farmers_pagination(callback: CallbackQuery):
 
 
 async def send_page(target, page, edit):
-
     data = await get_farmers()
+    page_data, start, end = paginate_data(data, page, PER_PAGE)
 
-    start = (page - 1) * PER_PAGE
-    end = start + PER_PAGE
-    page_data = data[start:end]
-
-    text = "📋 Фермерлар рўйхати\n\n"
-    text += f"{'№':<3} {'Фермер номи':<18} {'Баланс':>13}\n"
-    text += "-" * 37 + "\n"
-
-    for index, farmer in enumerate(page_data, start=start + 1):
-        text += (
-            f"{index:<3} "
-            f"{farmer['name'][:18]:<18} "
-            f"{float(farmer['balance']):>13,.1f}\n"
-        )
-
+    text = build_page_text(
+        title="📋 Фермерлар рўйхати",
+        headers=f"{'№':<3} {'Фермер номи':<18} {'Баланс':>13}",
+        rows=[
+            f"{index:<3} {farmer['name'][:18]:<18} {float(farmer['balance']):>13,.1f}"
+            for index, farmer in enumerate(page_data, start=start + 1)
+        ],
+    )
     keyboard = farmers_pagination_keyboard(page, end < len(data))
 
     if edit:
@@ -52,13 +45,9 @@ async def send_page(target, page, edit):
         await target.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=keyboard)
 
 
-
-
-
 @router.callback_query(F.data == "farmers_export_excel")
 @access_required
 async def farmers_excel(callback: CallbackQuery):
-
     data = await get_farmers()
 
     file_buffer = await farmers_to_excel(data)
