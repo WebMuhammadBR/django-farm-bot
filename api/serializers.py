@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from query.models.counterparties import Farmer
 
 
@@ -21,7 +22,6 @@ class FarmerSerializer(serializers.ModelSerializer):
 
 
 class FarmerSummarySerializer(serializers.ModelSerializer):
-
     quantity = serializers.DecimalField(
         max_digits=20,
         decimal_places=2
@@ -49,21 +49,19 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
             "amount",
         )
 
-    # 🔹 Massive бўш бўлса хатолик чиқмаслиги учун
     def get_region(self, obj):
-        try:
-            return obj.massive.district.region.name
-        except:
-            return None
+        massive = obj.massive
+        if massive and massive.district and massive.district.region:
+            return massive.district.region.name
+        return None
 
     def get_district(self, obj):
-        try:
-            return obj.massive.district.name
-        except:
-            return None
+        massive = obj.massive
+        if massive and massive.district:
+            return massive.district.name
+        return None
 
     def get_massive(self, obj):
-        try:
+        if obj.massive:
             return obj.massive.name
-        except:
-            return None
+        return None

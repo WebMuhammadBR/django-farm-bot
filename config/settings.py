@@ -143,8 +143,6 @@ NUMBER_GROUPING = 3
 # sanalarni 10.10.2026 farmatda chiqarish
 #===================================================
 
-USE_I18N = True
-USE_TZ = True
 USE_L10N = False
 
 DATE_FORMAT = "d.m.Y"

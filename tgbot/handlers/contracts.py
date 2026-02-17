@@ -1,19 +1,11 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-
-from tgbot.services.api_client import get_contracts_summary
-from tgbot.keyboards import contracts_pagination_keyboard
-from tgbot.middlewares.access import access_required
-
-from aiogram.types import CallbackQuery, BufferedInputFile
-from aiogram import F
+from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
 from tgbot.services.api_client import get_contracts_summary
 from tgbot.excel_export import contracts_to_excel
-
-
-
-
+from tgbot.keyboards import contracts_pagination_keyboard
+from tgbot.middlewares.access import access_required
+from tgbot.services.pagination import build_page_text, paginate_data
 
 router = Router()
 PER_PAGE = 25
@@ -34,24 +26,24 @@ async def contracts_pagination(callback: CallbackQuery):
 
 
 async def send_page(target, page, edit):
-
     data = await get_contracts_summary()
+    page_data, start, end = paginate_data(data, page, PER_PAGE)
 
-    start = (page - 1) * PER_PAGE
-    end = start + PER_PAGE
-    page_data = data[start:end]
+    text = build_page_text(
+        title="📑 Шартномалар рўйхати",
+        headers=f"{'№':<3} {'Фермер номи':<14} {'миқдор':>5} {'Сумма':>8}",
+        subheaders=f"{' ':<3} {'     ':<15} {'(тн)':>5} {'(млн)':>9}",
+        rows=[
+            (
+                f"{index:<3} "
+                f"{contract['name'][:15]:<15} "
+                f"{float(contract['quantity']):>5,.1f}"
+                f"{float(contract['amount']):>12,.0f}"
+            )
+            for index, contract in enumerate(page_data, start=start + 1)
+        ],
+    )
 
-    text = "📑 Шартномалар рўйхати\n\n"
-    text += f"{'№':<3} {'Фермер номи':<14} {'миқдор':>5} {'Сумма':>8}\n{' ':<3} {'     ':<15} {'(тн)':>5} {'(млн)':>9}\n"
-    text += "-" * 37 + "\n"
-
-    for index, contract in enumerate(page_data, start=start + 1):
-        text += (
-            f"{index:<3} "
-            f"{contract['name'][:15]:<15} "
-            f"{float(contract['quantity']):>5,.1f}"
-            f"{float(contract['amount']):>12,.0f}\n"
-        )
     keyboard = contracts_pagination_keyboard(page, end < len(data))
 
     if edit:
@@ -60,11 +52,9 @@ async def send_page(target, page, edit):
         await target.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=keyboard)
 
 
-
 @router.callback_query(F.data == "contracts_export_excel")
 @access_required
 async def contracts_excel(callback: CallbackQuery):
-
     data = await get_contracts_summary()
 
     file_buffer = await contracts_to_excel(data)
