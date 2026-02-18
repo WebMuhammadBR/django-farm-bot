@@ -22,7 +22,7 @@ farmers_menu = ReplyKeyboardMarkup(
 
 mineral_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🌾 Оғит омбор (барча Warehouse)")],
+        [KeyboardButton(text="🌾 Оғит омбор")],
         [KeyboardButton(text="🏠 Асосий меню")],
     ],
     resize_keyboard=True,
@@ -33,7 +33,10 @@ warehouse_menu = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="📊 Ҳисобот"),
+            KeyboardButton(text="🧾 Омборлар"),
             KeyboardButton(text="📥 Кирим"),
+        ],
+        [
             KeyboardButton(text="📤 Чиқим"),
         ],
         [KeyboardButton(text="🏬 Омбор")],

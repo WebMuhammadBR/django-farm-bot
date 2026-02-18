@@ -8,12 +8,13 @@ from rest_framework.views import APIView
 
 from query.models.bot import BotUser
 from query.models.counterparties import Farmer
-from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument
+from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument, Warehouse
 from .serializers import (
     FarmerSerializer,
     FarmerSummarySerializer,
     MineralWarehouseReceiptSerializer,
     GoodsGivenDocumentSummarySerializer,
+    WarehouseSerializer,
 )
 
 
@@ -74,6 +75,13 @@ class GoodsGivenDocumentListAPIView(ListAPIView):
             )
             .order_by("-date", "-id")
         )
+
+
+class WarehouseListAPIView(ListAPIView):
+    serializer_class = WarehouseSerializer
+
+    def get_queryset(self):
+        return Warehouse.objects.all().order_by("name")
 
 
 class MineralWarehouseTotalsAPIView(APIView):
