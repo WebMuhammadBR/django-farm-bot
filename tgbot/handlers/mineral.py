@@ -171,25 +171,12 @@ async def warehouse_expense_district_handler(callback: CallbackQuery):
 
     warehouse_map = await _warehouse_map()
     warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
-    products = await get_warehouse_products(
+    await _send_warehouse_products_page(
+        message=callback.message,
         warehouse_id=warehouse_id,
         movement="out",
-        district_id=None if district_id == 0 else district_id,
-    )
-
-    if not products:
-        await callback.message.edit_text(f"🏬 {warehouse_name}\n\n📤 Чиқим бўйича маълумот топилмади.")
-        await callback.answer()
-        return
-
-    await callback.message.edit_text(
-        f"🏬 {warehouse_name}\n📤 Чиқим учун маҳсулотни танланг:",
-        reply_markup=warehouse_products_inline_keyboard(
-            warehouse_id,
-            f"out_d{district_id}",
-            products,
-            back_callback=f"warehouse_back_to_districts:{warehouse_id}",
-        ),
+        district_id=district_id,
+        warehouse_name=warehouse_name,
     )
     await callback.answer()
 
@@ -206,6 +193,25 @@ async def warehouse_back_to_districts_handler(callback: CallbackQuery):
     await callback.message.edit_text(
         f"🏬 {warehouse_name}\n📤 Чиқим учун туманни танланг:",
         reply_markup=warehouse_expense_districts_inline_keyboard(warehouse_id, districts),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("warehouse_back_to_products:"))
+@access_required
+async def warehouse_back_to_products_handler(callback: CallbackQuery):
+    _, warehouse_id, movement, district_id = callback.data.split(":", maxsplit=3)
+    warehouse_id = int(warehouse_id)
+    district_id = int(district_id)
+
+    warehouse_map = await _warehouse_map()
+    warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
+    await _send_warehouse_products_page(
+        message=callback.message,
+        warehouse_id=warehouse_id,
+        movement=movement,
+        district_id=district_id,
+        warehouse_name=warehouse_name,
     )
     await callback.answer()
 
@@ -315,10 +321,7 @@ async def _send_warehouse_movements_page(
 
     content = "\n".join(lines)
 
-    if movement == "in":
-        back_callback = f"warehouse_back_sections:{warehouse_id}"
-    else:
-        back_callback = f"warehouse_back_to_districts:{warehouse_id}"
+    back_callback = f"warehouse_back_to_products:{warehouse_id}:{movement}:{district_id}"
 
     keyboard = warehouse_movements_pagination_keyboard(
         warehouse_id=warehouse_id,
@@ -330,6 +333,39 @@ async def _send_warehouse_movements_page(
         back_callback=back_callback,
     )
     await message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML", reply_markup=keyboard)
+
+
+async def _send_warehouse_products_page(message, warehouse_id: int, movement: str, district_id: int, warehouse_name: str):
+    district_filter = None if district_id == 0 else district_id
+    products = await get_warehouse_products(
+        warehouse_id=warehouse_id,
+        movement=movement,
+        district_id=district_filter,
+    )
+
+    if not products:
+        if movement == "in":
+            await message.edit_text(f"🏬 {warehouse_name}\n\n📥 Кирим бўйича маълумот топилмади.")
+        else:
+            await message.edit_text(f"🏬 {warehouse_name}\n\n📤 Чиқим бўйича маълумот топилмади.")
+        return
+
+    movement_token = f"out_d{district_id}" if movement == "out" else "in"
+    back_callback = (
+        f"warehouse_back_sections:{warehouse_id}"
+        if movement == "in"
+        else f"warehouse_back_to_districts:{warehouse_id}"
+    )
+
+    await message.edit_text(
+        f"🏬 {warehouse_name}\n{'📥 Кирим' if movement == 'in' else '📤 Чиқим'} учун маҳсулотни танланг:",
+        reply_markup=warehouse_products_inline_keyboard(
+            warehouse_id,
+            movement_token,
+            products,
+            back_callback=back_callback,
+        ),
+    )
 
 
 @router.callback_query(F.data.startswith("warehouse_export_filtered:"))
