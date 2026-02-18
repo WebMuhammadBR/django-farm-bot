@@ -134,3 +134,33 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district_index: int
     )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def warehouse_sections_inline_keyboard(warehouse_id: int):
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📊 Ҳисобот", callback_data=f"warehouse_section:{warehouse_id}:report")],
+            [InlineKeyboardButton(text="📥 Кирим", callback_data=f"warehouse_section:{warehouse_id}:receipt")],
+            [InlineKeyboardButton(text="📤 Чиқим", callback_data=f"warehouse_section:{warehouse_id}:expense")],
+        ]
+    )
+
+
+def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, products: list[dict]):
+    buttons = []
+    for item in products:
+        product_id = item.get("product_id")
+        product_name = item.get("product_name")
+        if not product_id or not product_name:
+            continue
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=str(product_name),
+                    callback_data=f"warehouse_product:{warehouse_id}:{movement}:{product_id}"
+                )
+            ]
+        )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
