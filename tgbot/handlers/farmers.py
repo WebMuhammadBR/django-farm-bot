@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
 from tgbot.services.api_client import get_farmers
 from tgbot.excel_export import farmers_to_excel
-from tgbot.keyboards import farmers_pagination_keyboard
+from tgbot.keyboards import farmers_filter_keyboard, farmers_pagination_keyboard
 from tgbot.middlewares.access import access_required
 from tgbot.services.pagination import build_page_text, paginate_data
 
@@ -14,30 +14,46 @@ PER_PAGE = 25
 @router.message(F.text == "📋 Фермерлар рўйхати")
 @access_required
 async def farmers_handler(message: Message):
-    await send_page(message, 1, False)
+    data = await get_farmers()
+    districts = extract_districts(data)
+    await message.answer("Туманни танланг 👇", reply_markup=farmers_filter_keyboard(districts))
 
 
-@router.callback_query(F.data.startswith("farmers_page:"))
+@router.callback_query(F.data.startswith("farmers_filter:"))
 @access_required
 async def farmers_pagination(callback: CallbackQuery):
-    page = int(callback.data.split(":")[1])
-    await send_page(callback.message, page, True)
+    _, district_index, page = callback.data.split(":", 2)
+    await send_page(callback.message, int(page), int(district_index), True)
     await callback.answer()
 
 
-async def send_page(target, page, edit):
+@router.callback_query(F.data == "farmers_back_to_filters")
+@access_required
+async def farmers_back_to_filters(callback: CallbackQuery):
     data = await get_farmers()
-    page_data, start, end = paginate_data(data, page, PER_PAGE)
+    districts = extract_districts(data)
+    await callback.message.edit_text("Туманни танланг 👇", reply_markup=farmers_filter_keyboard(districts))
+    await callback.answer()
+
+
+async def send_page(target, page, district_index, edit):
+    data = await get_farmers()
+    districts = extract_districts(data)
+    district = get_district_by_index(districts, district_index)
+    filtered_data = filter_by_district(data, district)
+    page_data, start, end = paginate_data(filtered_data, page, PER_PAGE)
+
+    district_title = "Умумий" if district == "all" else district
 
     text = build_page_text(
-        title="📋 Фермерлар рўйхати",
+        title=f"📋 Фермерлар рўйхати: {district_title}",
         headers=f"{'№':<3} {'Фермер номи':<18} {'Баланс':>13}",
         rows=[
             f"{index:<3} {farmer['name'][:18]:<18} {float(farmer['balance']):>13,.1f}"
             for index, farmer in enumerate(page_data, start=start + 1)
         ],
     )
-    keyboard = farmers_pagination_keyboard(page, end < len(data))
+    keyboard = farmers_pagination_keyboard(page, end < len(filtered_data), district_index)
 
     if edit:
         await target.edit_text(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=keyboard)
@@ -45,12 +61,16 @@ async def send_page(target, page, edit):
         await target.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=keyboard)
 
 
-@router.callback_query(F.data == "farmers_export_excel")
+@router.callback_query(F.data.startswith("farmers_export_excel:"))
 @access_required
 async def farmers_excel(callback: CallbackQuery):
+    district_index = int(callback.data.split(":", 1)[1])
     data = await get_farmers()
+    districts = extract_districts(data)
+    district = get_district_by_index(districts, district_index)
+    filtered_data = filter_by_district(data, district)
 
-    file_buffer = await farmers_to_excel(data)
+    file_buffer = await farmers_to_excel(filtered_data)
 
     if not file_buffer:
         await callback.answer("Маълумот йўқ", show_alert=True)
@@ -66,3 +86,27 @@ async def farmers_excel(callback: CallbackQuery):
     )
 
     await callback.answer()
+
+
+def extract_districts(data: list[dict]) -> list[str]:
+    districts = {
+        farmer.get("district")
+        for farmer in data
+        if farmer.get("district")
+    }
+    return sorted(districts)
+
+
+def filter_by_district(data: list[dict], district: str) -> list[dict]:
+    if district == "all":
+        return data
+    return [farmer for farmer in data if farmer.get("district") == district]
+
+
+def get_district_by_index(districts: list[str], district_index: int) -> str:
+    if district_index <= 0:
+        return "all"
+    district_pos = district_index - 1
+    if district_pos >= len(districts):
+        return "all"
+    return districts[district_pos]
