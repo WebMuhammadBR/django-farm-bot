@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from query.models.counterparties import Farmer
-from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument
+from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument, Warehouse
 
 
 class FarmerSerializer(serializers.ModelSerializer):
@@ -106,4 +106,14 @@ class GoodsGivenDocumentSummarySerializer(serializers.ModelSerializer):
             "farmer_name",
             "quantity",
             "total_amount",
+        )
+
+
+class WarehouseSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Warehouse
+        fields = (
+            "id",
+            "name",
         )

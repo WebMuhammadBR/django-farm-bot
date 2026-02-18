@@ -43,3 +43,9 @@ async def get_warehouse_expenses():
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{API_BASE_URL}/warehouse/expenses/") as resp:
             return await resp.json()
+
+
+async def get_warehouses():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_BASE_URL}/warehouse/list/") as resp:
+            return await resp.json()
