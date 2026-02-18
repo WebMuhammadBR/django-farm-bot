@@ -68,8 +68,8 @@ class GoodsGivenDocument(models.Model):
     number = models.CharField("Ҳужжат рақами", max_length=50)
     farmer = models.ForeignKey(Farmer,on_delete=models.PROTECT,verbose_name="Фермер")
     contract = models.ForeignKey(Contract,on_delete=models.PROTECT,verbose_name="Шартнома")
-    warehouse_receipt = models.ForeignKey(
-        MineralWarehouseReceipt,
+    warehouse = models.ForeignKey(
+        Warehouse,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

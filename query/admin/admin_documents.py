@@ -101,11 +101,11 @@ class GoodsGivenDocumentAdmin(admin.ModelAdmin):
         "formatted_date",
         "farmer",
         "contract",
-        "warehouse_receipt",
+        "warehouse",
         "get_total_amount",
     )
 
-    list_filter = ("date", "farmer", "warehouse_receipt")
+    list_filter = ("date", "farmer", "warehouse")
     search_fields = ("number", "farmer__name")
     ordering = ("-date",)
 
