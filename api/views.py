@@ -272,24 +272,34 @@ class WarehouseMovementsAPIView(APIView):
             expense_items = expense_items.filter(farmer__massive__district_id=district_id)
 
         result = []
-        for document in expense_items.order_by("-date", "-id").distinct():
-            items = document.items.select_related("product")
-            if product_id:
-                items = items.filter(product_id=product_id)
+        rows = (
+            expense_items
+            .values("farmer_id", "farmer__name", "farmer__maydon")
+            .annotate(quantity=Coalesce(Sum("items__quantity"), Decimal("0.00")))
+            .order_by("farmer__name")
+        )
 
-            for item in items:
-                result.append(
-                    {
-                        "id": item.id,
-                        "date": document.date,
-                        "warehouse_name": document.warehouse.name if document.warehouse else None,
-                        "number": document.number,
-                        "farmer_name": document.farmer.name if document.farmer else None,
-                        "product_id": item.product_id,
-                        "product_name": item.product.name if item.product else None,
-                        "quantity": item.quantity,
-                    }
-                )
+        for index, row in enumerate(rows, start=1):
+            maydon = row.get("farmer__maydon") or Decimal("0.00")
+            quantity = row.get("quantity") or Decimal("0.00")
+            quantity_per_area = Decimal("0.00")
+            if maydon > 0:
+                quantity_per_area = quantity / maydon
+
+            result.append(
+                {
+                    "id": index,
+                    "date": None,
+                    "warehouse_name": None,
+                    "number": "-",
+                    "farmer_name": row.get("farmer__name") or "-",
+                    "product_id": None,
+                    "product_name": "-",
+                    "quantity": quantity,
+                    "maydon": maydon,
+                    "quantity_per_area": quantity_per_area,
+                }
+            )
 
         return Response(result)
 

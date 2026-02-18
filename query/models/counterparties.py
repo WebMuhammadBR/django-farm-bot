@@ -10,7 +10,7 @@ from decimal import Decimal
 class Farmer(models.Model):
     name = models.CharField("Фермер номи", max_length=255)
     inn = models.CharField("ИНН",max_length=20,unique=True)
-    phone = models.CharField("Телефон",max_length=20,blank=True,null=True)
+    maydon = models.DecimalField("Майдон", max_digits=12, decimal_places=2, blank=True, null=True)
     massive = models.ForeignKey(Massive,on_delete=models.SET_NULL,null=True,blank=True,verbose_name="Массив")
     is_active = models.BooleanField("Фаол", default=True)
 
@@ -71,4 +71,3 @@ class BankAccount(models.Model):
     def __str__(self):
         return f"{self.bank_name} - {self.account_number}"
 #=======================================================================================
-

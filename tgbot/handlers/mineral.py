@@ -312,12 +312,13 @@ async def _send_warehouse_movements_page(
             lines.append(f"{date_text:<14} {invoice_number:<7} {quantity:>5}")
     else:
         lines.append("📤 Чиқим деталлари:")
-        lines.append(f"{'№':<3} {'Фермер номи':<17} {'Миқдори':>9}")
-        lines.append("-" * 31)
+        lines.append(f"{'№':<3} {'Фермер номи':<16} {'Миқдори':>8} {'Га/кг':>6}")
+        lines.append("-" * 40)
         for index, item in enumerate(page_items, start=start + 1):
-            farmer_name = (item.get("farmer_name") or "-")[:17]
+            farmer_name = (item.get("farmer_name") or "-")[:16]
             quantity = f"{float(item.get('quantity') or 0):.0f}"
-            lines.append(f"{index:<3} {farmer_name:<17} {quantity:>9}")
+            per_area = f"{float(item.get('quantity_per_area') or 0):.0f}"
+            lines.append(f"{index:<3} {farmer_name:<16} {quantity:>8} {per_area:>6}")
 
     content = "\n".join(lines)
 

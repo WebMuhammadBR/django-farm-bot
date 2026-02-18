@@ -18,7 +18,7 @@ class FarmerSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "inn",
-            "phone",
+            "maydon",
             "balance",
             "district",
         )
