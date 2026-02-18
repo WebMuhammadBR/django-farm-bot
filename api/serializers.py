@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from query.models.counterparties import Farmer
+from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument
 
 
 class FarmerSerializer(serializers.ModelSerializer):
@@ -65,3 +66,35 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
         if obj.massive:
             return obj.massive.name
         return None
+
+
+class MineralWarehouseReceiptSerializer(serializers.ModelSerializer):
+    transport_type_display = serializers.CharField(source="get_transport_type_display", read_only=True)
+
+    class Meta:
+        model = MineralWarehouseReceipt
+        fields = (
+            "id",
+            "date",
+            "invoice_number",
+            "transport_type",
+            "transport_type_display",
+            "transport_number",
+            "bag_count",
+            "quantity",
+            "warehouse_name",
+        )
+
+
+class GoodsGivenDocumentSummarySerializer(serializers.ModelSerializer):
+    warehouse_name = serializers.CharField(source="warehouse_receipt.warehouse_name", read_only=True)
+
+    class Meta:
+        model = GoodsGivenDocument
+        fields = (
+            "id",
+            "date",
+            "number",
+            "warehouse_name",
+            "total_amount",
+        )
