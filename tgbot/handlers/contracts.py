@@ -1,7 +1,5 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
-from urllib.parse import unquote
-
 from tgbot.services.api_client import get_contracts_summary
 from tgbot.excel_export import contracts_to_excel
 from tgbot.keyboards import contracts_filter_keyboard, contracts_pagination_keyboard
@@ -23,9 +21,8 @@ async def contracts_handler(message: Message):
 @router.callback_query(F.data.startswith("contracts_filter:"))
 @access_required
 async def contracts_pagination(callback: CallbackQuery):
-    _, district, page = callback.data.split(":", 2)
-    district = unquote(district)
-    await send_page(callback.message, int(page), district, True)
+    _, district_index, page = callback.data.split(":", 2)
+    await send_page(callback.message, int(page), int(district_index), True)
     await callback.answer()
 
 
@@ -38,8 +35,10 @@ async def contracts_back_to_filters(callback: CallbackQuery):
     await callback.answer()
 
 
-async def send_page(target, page, district, edit):
+async def send_page(target, page, district_index, edit):
     data = await get_contracts_summary()
+    districts = extract_districts(data)
+    district = get_district_by_index(districts, district_index)
     filtered_data = filter_by_district(data, district)
     page_data, start, end = paginate_data(filtered_data, page, PER_PAGE)
 
@@ -60,7 +59,7 @@ async def send_page(target, page, district, edit):
         ],
     )
 
-    keyboard = contracts_pagination_keyboard(page, end < len(filtered_data), district)
+    keyboard = contracts_pagination_keyboard(page, end < len(filtered_data), district_index)
 
     if edit:
         await target.edit_text(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=keyboard)
@@ -71,8 +70,10 @@ async def send_page(target, page, district, edit):
 @router.callback_query(F.data.startswith("contracts_export_excel:"))
 @access_required
 async def contracts_excel(callback: CallbackQuery):
-    district = unquote(callback.data.split(":", 1)[1])
+    district_index = int(callback.data.split(":", 1)[1])
     data = await get_contracts_summary()
+    districts = extract_districts(data)
+    district = get_district_by_index(districts, district_index)
     filtered_data = filter_by_district(data, district)
 
     file_buffer = await contracts_to_excel(filtered_data)
@@ -106,3 +107,12 @@ def filter_by_district(data: list[dict], district: str) -> list[dict]:
     if district == "all":
         return data
     return [contract for contract in data if contract.get("district") == district]
+
+
+def get_district_by_index(districts: list[str], district_index: int) -> str:
+    if district_index <= 0:
+        return "all"
+    district_pos = district_index - 1
+    if district_pos >= len(districts):
+        return "all"
+    return districts[district_pos]

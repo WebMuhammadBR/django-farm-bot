@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
@@ -57,19 +55,17 @@ def farmers_pagination_keyboard(page: int, has_next: bool):
 
 
 def contracts_filter_keyboard(districts: list[str]):
-    buttons = [[InlineKeyboardButton(text="📊 Умумий", callback_data="contracts_filter:all:1")]]
+    buttons = [[InlineKeyboardButton(text="📊 Умумий", callback_data="contracts_filter:0:1")]]
 
-    for district in districts:
-        district_encoded = quote(district, safe="")
+    for index, district in enumerate(districts, start=1):
         buttons.append(
-            [InlineKeyboardButton(text=district, callback_data=f"contracts_filter:{district_encoded}:1")]
+            [InlineKeyboardButton(text=district, callback_data=f"contracts_filter:{index}:1")]
         )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def contracts_pagination_keyboard(page: int, has_next: bool, district: str):
-    district_encoded = quote(district, safe="")
+def contracts_pagination_keyboard(page: int, has_next: bool, district_index: int):
 
     buttons = []
     row = []
@@ -78,14 +74,14 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district: str):
         row.append(
             InlineKeyboardButton(
                 text="⬅️",
-                callback_data=f"contracts_filter:{district_encoded}:{page-1}"
+                callback_data=f"contracts_filter:{district_index}:{page-1}"
             )
         )
 
     row.append(
         InlineKeyboardButton(
             text="📥 Excel",
-            callback_data=f"contracts_export_excel:{district_encoded}"
+            callback_data=f"contracts_export_excel:{district_index}"
         )
     )
 
@@ -93,7 +89,7 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district: str):
         row.append(
             InlineKeyboardButton(
                 text="➡️",
-                callback_data=f"contracts_filter:{district_encoded}:{page+1}"
+                callback_data=f"contracts_filter:{district_index}:{page+1}"
             )
         )
 
@@ -103,4 +99,3 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district: str):
     )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
