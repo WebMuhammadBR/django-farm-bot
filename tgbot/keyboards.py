@@ -239,6 +239,15 @@ def warehouse_movements_pagination_keyboard(
             )
         )
 
+    row.append(
+        InlineKeyboardButton(
+            text="📥 Excel",
+            callback_data=(
+                f"warehouse_export_filtered:{warehouse_id}:{movement}:{product_id}:{district_id}"
+            ),
+        )
+    )
+
     if has_next:
         row.append(
             InlineKeyboardButton(
@@ -249,8 +258,7 @@ def warehouse_movements_pagination_keyboard(
             )
         )
 
-    if row:
-        buttons.append(row)
+    buttons.append(row)
 
     buttons.append([InlineKeyboardButton(text="⬅️ Орқага", callback_data=back_callback)])
 

@@ -284,7 +284,7 @@ async def _send_warehouse_movements_page(
         lines.append("📤 Чиқим деталлари:")
         for index, item in enumerate(page_items, start=start + 1):
             lines.append(
-                f"{index}. {item.get('date') or '-'} | №{item.get('number') or '-'} | "
+                f"{index}. №{item.get('number') or '-'} | "
                 f"{item.get('farmer_name') or '-'} | миқдори: {float(item.get('quantity') or 0):.2f}"
             )
 
@@ -305,6 +305,34 @@ async def _send_warehouse_movements_page(
         back_callback=back_callback,
     )
     await message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML", reply_markup=keyboard)
+
+
+@router.callback_query(F.data.startswith("warehouse_export_filtered:"))
+@access_required
+async def warehouse_export_filtered_handler(callback: CallbackQuery):
+    _, warehouse_id, movement, product_id, district_id = callback.data.split(":", maxsplit=4)
+
+    data = await get_warehouse_movements(
+        movement=movement,
+        warehouse_id=int(warehouse_id),
+        product_id=int(product_id),
+        district_id=None if int(district_id) == 0 else int(district_id),
+    )
+
+    if movement == "in":
+        file_buffer = await warehouse_receipts_to_excel(data)
+        filename = "warehouse_receipts.xlsx"
+    else:
+        file_buffer = await warehouse_expenses_to_excel(data)
+        filename = "warehouse_expenses.xlsx"
+
+    if not file_buffer:
+        await callback.answer("Маълумот йўқ", show_alert=True)
+        return
+
+    file = BufferedInputFile(file_buffer.getvalue(), filename=filename)
+    await callback.message.answer_document(document=file)
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("warehouse_export:"))
