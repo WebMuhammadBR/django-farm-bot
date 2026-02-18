@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from ..models.documents import GoodsGivenDocument, GoodsGivenItem, MineralWarehouseReceipt
+from ..models.documents import GoodsGivenDocument, GoodsGivenItem, MineralWarehouseReceipt, Warehouse
 from ..models.contracts import Contract
 
 
@@ -70,11 +70,22 @@ class MineralWarehouseReceiptAdmin(admin.ModelAdmin):
         "transport_type",
         "transport_number",
         "bag_count",
+        "product",
         "quantity",
-        "warehouse_name",
+        "price",
+        "amount",
+        "warehouse",
     )
-    list_filter = ("date", "warehouse_name", "transport_type")
-    search_fields = ("invoice_number", "transport_number", "warehouse_name")
+    list_filter = ("date", "warehouse", "transport_type", "product")
+    search_fields = ("invoice_number", "transport_number", "warehouse__name", "product__name")
+    readonly_fields = ("amount",)
+
+
+@admin.register(Warehouse)
+class WarehouseAdmin(admin.ModelAdmin):
+    list_display = ("id", "name")
+    search_fields = ("name",)
+    ordering = ("name",)
 
 # =====================================================
 # 🔹 ADMIN — GoodsGivenDocument

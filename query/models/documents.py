@@ -6,6 +6,18 @@ from .reference import Product
 from django.db.models import Sum
 
 
+class Warehouse(models.Model):
+    name = models.CharField("Омбор номи", max_length=255, unique=True)
+
+    class Meta:
+        verbose_name = "Омбор"
+        verbose_name_plural = "Омборлар"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class MineralWarehouseReceipt(models.Model):
     class TransportType(models.TextChoices):
         TRUCK = "truck", "Юк машинаси"
@@ -22,8 +34,18 @@ class MineralWarehouseReceipt(models.Model):
     )
     transport_number = models.CharField("Транспорт рақами", max_length=30)
     bag_count = models.PositiveIntegerField("Қоп сони", default=0)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name="Маҳсулот", null=True, blank=True)
     quantity = models.DecimalField("Миқдори", max_digits=14, decimal_places=2)
-    warehouse_name = models.CharField("Омбор номи", max_length=255)
+    price = models.DecimalField("Нарх", max_digits=14, decimal_places=2, default=0)
+    amount = models.DecimalField("Сумма", max_digits=14, decimal_places=2, default=0)
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="receipts",
+        verbose_name="Омбор",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = "Омбор кирим ҳужжати"
@@ -31,7 +53,12 @@ class MineralWarehouseReceipt(models.Model):
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"{self.warehouse_name} / {self.invoice_number}"
+        warehouse_name = self.warehouse.name if self.warehouse else "-"
+        return f"{warehouse_name} / {self.invoice_number}"
+
+    def save(self, *args, **kwargs):
+        self.amount = self.quantity * self.price
+        super().save(*args, **kwargs)
 
 # ==========================================
 # DOCUMENT (Шапка) Тавар

@@ -25,9 +25,12 @@ async def warehouse_summary_handler(message: Message):
 
     text = (
         "🏬 Омбор ҳисоботи\n\n"
-        f"📥 Умумий кирим: {float(totals.get('total_in', 0)):.2f}\n"
-        f"📤 Умумий чиқим: {float(totals.get('total_out', 0)):.2f}\n"
-        f"🧮 Қолдиқ: {float(totals.get('balance', 0)):.2f}"
+        f"📥 Умумий кирим (миқдор): {float(totals.get('total_in', 0)):.2f}\n"
+        f"📤 Умумий чиқим (миқдор): {float(totals.get('total_out', 0)):.2f}\n"
+        f"🧮 Қолдиқ (миқдор): {float(totals.get('balance', 0)):.2f}\n\n"
+        f"💰 Умумий кирим (сумма): {float(totals.get('total_in_amount', 0)):.2f}\n"
+        f"💸 Умумий чиқим (сумма): {float(totals.get('total_out_amount', 0)):.2f}\n"
+        f"💵 Қолдиқ (сумма): {float(totals.get('balance_amount', 0)):.2f}"
     )
 
     await message.answer(text, reply_markup=warehouse_menu)
@@ -45,8 +48,9 @@ async def warehouse_receipts_handler(message: Message):
     lines = ["📥 Омбор кирим рўйхати", ""]
     for index, item in enumerate(receipts[:30], start=1):
         lines.append(
-            f"{index}. {item['date']} | {item['warehouse_name']} | "
-            f"№{item['invoice_number']} | {float(item['quantity']):.2f}"
+            f"{index}. {item['date']} | {item['warehouse']} | №{item['invoice_number']}\n"
+            f"   🚚 {item['transport_type_display']} ({item['transport_number']}) | Қоп: {item['bag_count']}\n"
+            f"   📦 {item['product']} | Миқдор: {float(item['quantity']):.2f} | Нарх: {float(item['price']):.2f} | Сумма: {float(item['amount']):.2f}"
         )
 
     await message.answer("\n".join(lines), reply_markup=warehouse_menu)
@@ -65,8 +69,7 @@ async def warehouse_expenses_handler(message: Message):
     for index, item in enumerate(expenses[:30], start=1):
         warehouse_name = item.get("warehouse_name") or "-"
         lines.append(
-            f"{index}. {item['date']} | {warehouse_name} | "
-            f"№{item['number']} | {float(item['total_amount']):.2f}"
+            f"{index}. {item['date']} | {warehouse_name} | №{item['number']} | Сумма: {float(item['total_amount']):.2f}"
         )
 
     await message.answer("\n".join(lines), reply_markup=warehouse_menu)
