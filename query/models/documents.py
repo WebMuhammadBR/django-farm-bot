@@ -5,6 +5,34 @@ from decimal import Decimal
 from .reference import Product
 from django.db.models import Sum
 
+
+class MineralWarehouseReceipt(models.Model):
+    class TransportType(models.TextChoices):
+        TRUCK = "truck", "Юк машинаси"
+        TRACTOR = "tractor", "Трактор"
+        TRAIN = "train", "Поезд"
+        OTHER = "other", "Бошқа"
+
+    date = models.DateField("Сана")
+    invoice_number = models.CharField("Накладной рақами", max_length=50)
+    transport_type = models.CharField(
+        "Транспорт русуми",
+        max_length=20,
+        choices=TransportType.choices,
+    )
+    transport_number = models.CharField("Транспорт рақами", max_length=30)
+    bag_count = models.PositiveIntegerField("Қоп сони", default=0)
+    quantity = models.DecimalField("Миқдори", max_digits=14, decimal_places=2)
+    warehouse_name = models.CharField("Омбор номи", max_length=255)
+
+    class Meta:
+        verbose_name = "Омбор кирим ҳужжати"
+        verbose_name_plural = "Омбор кирим ҳужжатлари"
+        ordering = ["-date", "-id"]
+
+    def __str__(self):
+        return f"{self.warehouse_name} / {self.invoice_number}"
+
 # ==========================================
 # DOCUMENT (Шапка) Тавар
 # ==========================================
@@ -13,6 +41,14 @@ class GoodsGivenDocument(models.Model):
     number = models.CharField("Ҳужжат рақами", max_length=50)
     farmer = models.ForeignKey(Farmer,on_delete=models.PROTECT,verbose_name="Фермер")
     contract = models.ForeignKey(Contract,on_delete=models.PROTECT,verbose_name="Шартнома")
+    warehouse_receipt = models.ForeignKey(
+        MineralWarehouseReceipt,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="given_documents",
+        verbose_name="Омбор",
+    )
 
     class Meta:
         verbose_name = "Товар бериш ҳужжати"

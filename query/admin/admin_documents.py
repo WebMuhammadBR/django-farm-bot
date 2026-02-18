@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from ..models.documents import GoodsGivenDocument, GoodsGivenItem
+from ..models.documents import GoodsGivenDocument, GoodsGivenItem, MineralWarehouseReceipt
 from ..models.contracts import Contract
 
 
@@ -60,6 +60,22 @@ class GoodsGivenDocumentAdminForm(forms.ModelForm):
             self.fields["contract"].queryset = Contract.objects.none()
 
 
+
+
+@admin.register(MineralWarehouseReceipt)
+class MineralWarehouseReceiptAdmin(admin.ModelAdmin):
+    list_display = (
+        "date",
+        "invoice_number",
+        "transport_type",
+        "transport_number",
+        "bag_count",
+        "quantity",
+        "warehouse_name",
+    )
+    list_filter = ("date", "warehouse_name", "transport_type")
+    search_fields = ("invoice_number", "transport_number", "warehouse_name")
+
 # =====================================================
 # 🔹 ADMIN — GoodsGivenDocument
 # =====================================================
@@ -74,10 +90,11 @@ class GoodsGivenDocumentAdmin(admin.ModelAdmin):
         "formatted_date",
         "farmer",
         "contract",
+        "warehouse_receipt",
         "get_total_amount",
     )
 
-    list_filter = ("date", "farmer")
+    list_filter = ("date", "farmer", "warehouse_receipt")
     search_fields = ("number", "farmer__name")
     ordering = ("-date",)
 

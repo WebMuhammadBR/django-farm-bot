@@ -2,7 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 
 from tgbot.config import TOKEN
-from tgbot.handlers import start, farmers, contracts
+from tgbot.handlers import start, farmers, contracts, mineral
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -10,6 +10,7 @@ dp = Dispatcher()
 dp.include_router(start.router)
 dp.include_router(farmers.router)
 dp.include_router(contracts.router)
+dp.include_router(mineral.router)
 
 
 async def main():
@@ -18,3 +19,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
