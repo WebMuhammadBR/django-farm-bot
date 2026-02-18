@@ -89,6 +89,7 @@ class MineralWarehouseTotalsAPIView(APIView):
     def get(self, request):
         warehouse_id = request.query_params.get("warehouse_id")
         product_id = request.query_params.get("product_id")
+        district_id = request.query_params.get("district_id")
 
         receipts = MineralWarehouseReceipt.objects.all()
         expenses = GoodsGivenDocument.objects.all()
@@ -100,6 +101,8 @@ class MineralWarehouseTotalsAPIView(APIView):
         if product_id:
             receipts = receipts.filter(product_id=product_id)
             expenses = expenses.filter(items__product_id=product_id)
+        if district_id:
+            expenses = expenses.filter(farmer__massive__district_id=district_id)
 
         total_in = receipts.aggregate(
             value=Coalesce(Sum("quantity"), Decimal("0.00")),
@@ -131,6 +134,7 @@ class WarehouseProductsAPIView(APIView):
     def get(self, request):
         warehouse_id = request.query_params.get("warehouse_id")
         movement = request.query_params.get("movement")
+        district_id = request.query_params.get("district_id")
 
         receipt_items = MineralWarehouseReceipt.objects.all()
         expense_items = GoodsGivenDocument.objects.all()
@@ -138,6 +142,8 @@ class WarehouseProductsAPIView(APIView):
         if warehouse_id:
             receipt_items = receipt_items.filter(warehouse_id=warehouse_id)
             expense_items = expense_items.filter(warehouse_id=warehouse_id)
+        if district_id:
+            expense_items = expense_items.filter(farmer__massive__district_id=district_id)
 
         products_map = {}
 
@@ -191,11 +197,38 @@ class WarehouseProductsAPIView(APIView):
         return Response(products)
 
 
+class WarehouseExpenseDistrictsAPIView(APIView):
+
+    def get(self, request):
+        warehouse_id = request.query_params.get("warehouse_id")
+
+        expense_items = GoodsGivenDocument.objects.select_related("farmer__massive__district")
+        if warehouse_id:
+            expense_items = expense_items.filter(warehouse_id=warehouse_id)
+
+        districts = {}
+        for item in expense_items:
+            farmer = item.farmer
+            if not farmer or not farmer.massive or not farmer.massive.district:
+                continue
+
+            district = farmer.massive.district
+            districts[district.id] = district.name
+
+        result = [
+            {"district_id": district_id, "district_name": district_name}
+            for district_id, district_name in sorted(districts.items(), key=lambda row: row[1])
+        ]
+
+        return Response(result)
+
+
 class WarehouseMovementsAPIView(APIView):
 
     def get(self, request):
         warehouse_id = request.query_params.get("warehouse_id")
         product_id = request.query_params.get("product_id")
+        district_id = request.query_params.get("district_id")
         movement = request.query_params.get("movement")
 
         if movement not in {"in", "out"}:
@@ -235,6 +268,8 @@ class WarehouseMovementsAPIView(APIView):
             expense_items = expense_items.filter(warehouse_id=warehouse_id)
         if product_id:
             expense_items = expense_items.filter(items__product_id=product_id)
+        if district_id:
+            expense_items = expense_items.filter(farmer__massive__district_id=district_id)
 
         result = []
         for document in expense_items.order_by("-date", "-id").distinct():

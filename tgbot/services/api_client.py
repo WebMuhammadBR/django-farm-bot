@@ -53,12 +53,18 @@ async def get_warehouses():
             return await resp.json()
 
 
-async def get_warehouse_totals_by_filters(warehouse_id: int | None = None, product_id: int | None = None):
+async def get_warehouse_totals_by_filters(
+    warehouse_id: int | None = None,
+    product_id: int | None = None,
+    district_id: int | None = None,
+):
     params = {}
     if warehouse_id:
         params["warehouse_id"] = warehouse_id
     if product_id:
         params["product_id"] = product_id
+    if district_id:
+        params["district_id"] = district_id
 
     query = f"?{urlencode(params)}" if params else ""
 
@@ -67,12 +73,18 @@ async def get_warehouse_totals_by_filters(warehouse_id: int | None = None, produ
             return await resp.json()
 
 
-async def get_warehouse_products(warehouse_id: int | None = None, movement: str | None = None):
+async def get_warehouse_products(
+    warehouse_id: int | None = None,
+    movement: str | None = None,
+    district_id: int | None = None,
+):
     params = {}
     if warehouse_id:
         params["warehouse_id"] = warehouse_id
     if movement:
         params["movement"] = movement
+    if district_id:
+        params["district_id"] = district_id
 
     query = f"?{urlencode(params)}" if params else ""
 
@@ -85,15 +97,30 @@ async def get_warehouse_movements(
     movement: str,
     warehouse_id: int | None = None,
     product_id: int | None = None,
+    district_id: int | None = None,
 ):
     params = {"movement": movement}
     if warehouse_id:
         params["warehouse_id"] = warehouse_id
     if product_id:
         params["product_id"] = product_id
+    if district_id:
+        params["district_id"] = district_id
 
     query = f"?{urlencode(params)}" if params else ""
 
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{API_BASE_URL}/warehouse/movements/{query}") as resp:
+            return await resp.json()
+
+
+async def get_warehouse_expense_districts(warehouse_id: int | None = None):
+    params = {}
+    if warehouse_id:
+        params["warehouse_id"] = warehouse_id
+
+    query = f"?{urlencode(params)}" if params else ""
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_BASE_URL}/warehouse/expense-districts/{query}") as resp:
             return await resp.json()
