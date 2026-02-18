@@ -14,7 +14,7 @@ class FarmerAdmin(admin.ModelAdmin):
         "id",
         "name",
         "inn",
-        "phone",
+        "maydon",
         "massive",
         "is_active",
         "get_balance",
