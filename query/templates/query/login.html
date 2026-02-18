@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Tizimga kirish</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: rgba(255, 255, 255, 0.09);
+            --border: rgba(255, 255, 255, 0.2);
+            --text: #f5f7ff;
+            --muted: #b5bed3;
+            --primary: #5b8cff;
+            --primary-dark: #3f70eb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            background: radial-gradient(circle at top right, #1f3064 0%, var(--bg) 42%, #080c1a 100%);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        }
+
+        .card {
+            width: min(100%, 430px);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            backdrop-filter: blur(16px);
+            padding: 28px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+        }
+
+        .title {
+            margin: 0;
+            font-size: clamp(24px, 5vw, 30px);
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            margin: 8px 0 22px;
+            color: var(--muted);
+            font-size: clamp(13px, 3.6vw, 14px);
+            line-height: 1.4;
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #d7dff5;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input {
+            width: 100%;
+            min-height: 46px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            padding: 12px 56px 12px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.25);
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #d1daf4;
+            cursor: pointer;
+            font-size: 13px;
+            min-height: 32px;
+            min-width: 64px;
+            padding: 0 10px;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 20px;
+            font-size: 14px;
+            color: #d7dff5;
+            user-select: none;
+        }
+
+        .remember input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            min-height: 46px;
+            border: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #7a5cff);
+            color: #fff;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .15s, background .2s;
+        }
+
+        .btn:hover,
+        .btn:focus-visible {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, var(--primary-dark), #6847f4);
+        }
+
+        .error {
+            margin-bottom: 14px;
+            border: 1px solid rgba(255, 107, 107, 0.45);
+            background: rgba(255, 107, 107, 0.15);
+            color: #ffd5d5;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            line-height: 1.35;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                align-items: start;
+            }
+
+            .card {
+                margin-top: 6vh;
+                padding: 22px 16px;
+                border-radius: 16px;
+            }
+
+            .subtitle {
+                margin-bottom: 18px;
+            }
+
+            .remember {
+                font-size: 13px;
+                margin-bottom: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1 class="title">Xush kelibsiz 👋</h1>
+    <p class="subtitle">Tizimga kirish uchun login va parolni kiriting.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" autocomplete="on">
+        {% csrf_token %}
+
+        <div class="field">
+            <label class="label" for="id_username">Login</label>
+            <div class="input-wrap">
+                <input
+                    id="id_username"
+                    class="input"
+                    type="text"
+                    name="username"
+                    value="{{ request.POST.username|default:'' }}"
+                    placeholder="Loginingiz"
+                    required
+                    autocomplete="username"
+                />
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="id_password">Parol</label>
+            <div class="input-wrap">
+                <input
+                    id="id_password"
+                    class="input"
+                    type="password"
+                    name="password"
+                    placeholder="Parolingiz"
+                    required
+                    autocomplete="current-password"
+                />
+                <button type="button" id="togglePassword" class="toggle-pass" aria-label="Parolni ko'rsatish">Ko'rsat</button>
+            </div>
+        </div>
+
+        <label class="remember" for="id_remember_me">
+            <input id="id_remember_me" type="checkbox" name="remember_me" {% if request.POST.remember_me %}checked{% endif %} />
+            Parolni eslab qolish
+        </label>
+
+        <button class="btn" type="submit">Kirish</button>
+    </form>
+</div>
+
+<script>
+    const passwordInput = document.getElementById("id_password");
+    const toggleButton = document.getElementById("togglePassword");
+
+    toggleButton.addEventListener("click", () => {
+        const isPassword = passwordInput.type === "password";
+        passwordInput.type = isPassword ? "text" : "password";
+        toggleButton.textContent = isPassword ? "Yashir" : "Ko'rsat";
+        toggleButton.setAttribute("aria-label", isPassword ? "Parolni yashirish" : "Parolni ko'rsatish");
+    });
+</script>
+</body>
+</html>
