@@ -59,34 +59,40 @@ class MineralWarehouseReceiptListAPIView(ListAPIView):
     serializer_class = MineralWarehouseReceiptSerializer
 
     def get_queryset(self):
-        return MineralWarehouseReceipt.objects.order_by("-date", "-id")
+        return MineralWarehouseReceipt.objects.select_related("warehouse", "product").order_by("-date", "-id")
 
 
 class GoodsGivenDocumentListAPIView(ListAPIView):
     serializer_class = GoodsGivenDocumentSummarySerializer
 
     def get_queryset(self):
-        return GoodsGivenDocument.objects.select_related("warehouse_receipt").order_by("-date", "-id")
+        return GoodsGivenDocument.objects.select_related("warehouse_receipt", "warehouse_receipt__warehouse").order_by("-date", "-id")
 
 
 class MineralWarehouseTotalsAPIView(APIView):
 
     def get(self, request):
         total_in = MineralWarehouseReceipt.objects.aggregate(
-            value=Coalesce(Sum("quantity"), Decimal("0.00"))
-        )["value"]
+            value=Coalesce(Sum("quantity"), Decimal("0.00")),
+            amount=Coalesce(Sum("amount"), Decimal("0.00")),
+        )
 
         total_out = GoodsGivenDocument.objects.aggregate(
-            value=Coalesce(Sum("items__quantity"), Decimal("0.00"))
-        )["value"]
+            value=Coalesce(Sum("items__quantity"), Decimal("0.00")),
+            amount=Coalesce(Sum("items__amount"), Decimal("0.00")),
+        )
 
-        balance = total_in - total_out
+        balance = total_in["value"] - total_out["value"]
+        balance_amount = total_in["amount"] - total_out["amount"]
 
         return Response(
             {
-                "total_in": total_in,
-                "total_out": total_out,
+                "total_in": total_in["value"],
+                "total_out": total_out["value"],
                 "balance": balance,
+                "total_in_amount": total_in["amount"],
+                "total_out_amount": total_out["amount"],
+                "balance_amount": balance_amount,
             }
         )
 
