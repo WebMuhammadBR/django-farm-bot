@@ -1,5 +1,6 @@
 from aiogram import F, Router
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
+from datetime import datetime
 
 from tgbot.excel_export import warehouse_expenses_to_excel, warehouse_receipts_to_excel
 from tgbot.keyboards import (
@@ -25,6 +26,27 @@ USER_SELECTED_WAREHOUSE: dict[int, int] = {}
 
 WAREHOUSE_RECEIPT_NAMES = {"📥 Кирим", "kirim", "krim", "кирим"}
 WAREHOUSE_EXPENSE_NAMES = {"📤 Чиқим", "chiqim", "чиқим"}
+
+
+def _format_date_ddmmyyyy(value) -> str:
+    if not value:
+        return "-"
+
+    date_text = str(value).strip()
+    normalized = date_text.replace("Z", "+00:00")
+
+    try:
+        return datetime.fromisoformat(normalized).strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+
+    for date_format in ("%Y-%m-%d", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(date_text[:10], date_format).strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+
+    return date_text[:10]
 
 
 async def _warehouse_map():
@@ -275,18 +297,21 @@ async def _send_warehouse_movements_page(
 
     if movement == "in":
         lines.append("📥 Кирим деталлари:")
-        for index, item in enumerate(page_items, start=start + 1):
-            lines.append(
-                f"{index}. {item.get('date') or '-'} | №{item.get('invoice_number') or '-'} | "
-                f"миқдори: {float(item.get('quantity') or 0):.2f}"
-            )
+        lines.append(f"{'Сана':<10} {'Накладной №':<4} {'Миқдори':>10}")
+        lines.append("-" * 28)
+        for item in page_items:
+            date_text = _format_date_ddmmyyyy(item.get("date"))
+            invoice_number = str(item.get("invoice_number") or "-")
+            quantity = f"{float(item.get('quantity') or 0):.2f}"
+            lines.append(f"{date_text:<10} {invoice_number:<4} {quantity:>10}")
     else:
         lines.append("📤 Чиқим деталлари:")
+        lines.append(f"{'№':<3} {'Фермер номи':<17} {'Миқдори':>9}")
+        lines.append("-" * 31)
         for index, item in enumerate(page_items, start=start + 1):
-            lines.append(
-                f"{index}. №{item.get('number') or '-'} | "
-                f"{item.get('farmer_name') or '-'} | миқдори: {float(item.get('quantity') or 0):.2f}"
-            )
+            farmer_name = (item.get("farmer_name") or "-")[:17]
+            quantity = f"{float(item.get('quantity') or 0):.2f}"
+            lines.append(f"{index:<3} {farmer_name:<17} {quantity:>9}")
 
     content = "\n".join(lines)
 
