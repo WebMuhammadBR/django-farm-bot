@@ -38,6 +38,20 @@ def warehouse_names_menu(warehouse_names: list[str]):
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
+def warehouse_movement_menu():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text="📥 Кирим"),
+                KeyboardButton(text="📤 Чиқим"),
+            ],
+            [KeyboardButton(text="⬅️ Омборлар рўйхати")],
+            [KeyboardButton(text="🏠 Асосий меню")],
+        ],
+        resize_keyboard=True,
+    )
+
+
 
 
 def farmers_filter_keyboard(districts: list[str]):
@@ -135,15 +149,6 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district_index: int
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def warehouse_sections_inline_keyboard(warehouse_id: int):
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📥 Кирим", callback_data=f"warehouse_section:{warehouse_id}:receipt")],
-            [InlineKeyboardButton(text="📤 Чиқим", callback_data=f"warehouse_section:{warehouse_id}:expense")],
-        ]
-    )
-
-
 def warehouse_expense_districts_inline_keyboard(warehouse_id: int, districts: list[dict]):
     buttons = [
         [
@@ -169,10 +174,19 @@ def warehouse_expense_districts_inline_keyboard(warehouse_id: int, districts: li
             ]
         )
 
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="⬅️ Орқага",
+                callback_data=f"warehouse_back_sections:{warehouse_id}",
+            )
+        ]
+    )
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, products: list[dict]):
+def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, products: list[dict], back_callback: str):
     buttons = []
     for item in products:
         product_id = item.get("product_id")
@@ -197,5 +211,47 @@ def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, product
             )
         ]
     )
+
+    buttons.append([InlineKeyboardButton(text="⬅️ Орқага", callback_data=back_callback)])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def warehouse_movements_pagination_keyboard(
+    warehouse_id: int,
+    movement: str,
+    product_id: int,
+    district_id: int,
+    page: int,
+    has_next: bool,
+    back_callback: str,
+):
+    buttons = []
+    row = []
+
+    if page > 1:
+        row.append(
+            InlineKeyboardButton(
+                text="⬅️",
+                callback_data=(
+                    f"warehouse_movements_page:{warehouse_id}:{movement}:{product_id}:{district_id}:{page-1}"
+                ),
+            )
+        )
+
+    if has_next:
+        row.append(
+            InlineKeyboardButton(
+                text="➡️",
+                callback_data=(
+                    f"warehouse_movements_page:{warehouse_id}:{movement}:{product_id}:{district_id}:{page+1}"
+                ),
+            )
+        )
+
+    if row:
+        buttons.append(row)
+
+    buttons.append([InlineKeyboardButton(text="⬅️ Орқага", callback_data=back_callback)])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
