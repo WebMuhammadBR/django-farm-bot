@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from tgbot.keyboards import mineral_menu, warehouse_menu
+from tgbot.keyboards import warehouse_menu, warehouse_names_menu
 from tgbot.middlewares.access import access_required
 from tgbot.services.api_client import (
     get_warehouse_totals,
@@ -12,24 +12,31 @@ from tgbot.services.api_client import (
 
 router = Router()
 
+WAREHOUSE_REPORT_NAMES = {"📊 Ҳисобот", "hisobot", "ҳисобот", "xisobot"}
+WAREHOUSE_RECEIPT_NAMES = {"📥 Кирим", "kirim", "krim", "кирим"}
+WAREHOUSE_EXPENSE_NAMES = {"📤 Чиқим", "chiqim", "чиқим"}
+
 
 @router.message(F.text.in_({"🌾 Минерал ўғит", "🏬 Омбор"}))
 @access_required
 async def mineral_menu_handler(message: Message):
-    await message.answer("Омбор бўлими 👇", reply_markup=mineral_menu)
+    warehouses = await get_warehouses()
+    warehouse_names = [str(item.get("name", "")).strip() for item in warehouses]
 
+    if not any(warehouse_names):
+        await message.answer(
+            "Омборлар топилмади. Қуйидаги тугмалардан фойдаланинг 👇",
+            reply_markup=warehouse_menu,
+        )
+        return
 
-@router.message(F.text.in_({"🌾 Оғит омбор", "🌾 Оғит омбор (барча Warehouse)", "🌾 Минерал ўғит омбори"}))
-@access_required
-async def warehouse_summary_handler(message: Message):
     await message.answer(
-        "🌾 Оғит омбори\n\nҚуйидаги тугмалардан керакли бўлимни танланг 👇",
-        reply_markup=warehouse_menu,
+        "🏬 Омбор\n\nWarehouse modeldagi номлар 👇",
+        reply_markup=warehouse_names_menu(warehouse_names),
     )
 
 
-
-@router.message(F.text == "📊 Ҳисобот")
+@router.message(F.text.func(lambda value: value and value.lower() in {name.lower() for name in WAREHOUSE_REPORT_NAMES}))
 @access_required
 async def warehouse_report_handler(message: Message):
     totals = await get_warehouse_totals()
@@ -44,7 +51,7 @@ async def warehouse_report_handler(message: Message):
     await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
 
 
-@router.message(F.text == "📥 Кирим")
+@router.message(F.text.func(lambda value: value and value.lower() in {name.lower() for name in WAREHOUSE_RECEIPT_NAMES}))
 @access_required
 async def warehouse_receipts_handler(message: Message):
     receipts = await get_warehouse_receipts()
@@ -69,7 +76,7 @@ async def warehouse_receipts_handler(message: Message):
     await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
 
 
-@router.message(F.text == "📤 Чиқим")
+@router.message(F.text.func(lambda value: value and value.lower() in {name.lower() for name in WAREHOUSE_EXPENSE_NAMES}))
 @access_required
 async def warehouse_expenses_handler(message: Message):
     expenses = await get_warehouse_expenses()
@@ -84,24 +91,6 @@ async def warehouse_expenses_handler(message: Message):
         farmer_name = item.get("farmer_name") or "-"
         quantity = float(item.get("quantity") or 0)
         lines.append(f"{index}. {date} | {farmer_name} | Миқдор: {quantity:.2f}")
-
-    text = "\n".join(lines)
-    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
-
-
-@router.message(F.text == "🧾 Омборлар")
-@access_required
-async def warehouse_list_handler(message: Message):
-    warehouses = await get_warehouses()
-
-    if not warehouses:
-        await message.answer("Омборлар рўйхати бўш", reply_markup=warehouse_menu)
-        return
-
-    lines = ["🧾 Омборлар рўйхати (Warehouse)", ""]
-
-    for index, item in enumerate(warehouses, start=1):
-        lines.append(f"{index}. ID: {item.get('id', '-') } | Номи: {item.get('name', '-')}")
 
     text = "\n".join(lines)
     await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)

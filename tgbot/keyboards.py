@@ -20,30 +20,23 @@ farmers_menu = ReplyKeyboardMarkup(
 )
 
 
-mineral_menu = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="🌾 Оғит омбор")],
-        [KeyboardButton(text="🏠 Асосий меню")],
-    ],
-    resize_keyboard=True,
-)
-
-
 warehouse_menu = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="📊 Ҳисобот"),
-            KeyboardButton(text="🧾 Омборлар"),
             KeyboardButton(text="📥 Кирим"),
-        ],
-        [
             KeyboardButton(text="📤 Чиқим"),
         ],
-        [KeyboardButton(text="🏬 Омбор")],
         [KeyboardButton(text="🏠 Асосий меню")],
     ],
     resize_keyboard=True,
 )
+
+
+def warehouse_names_menu(warehouse_names: list[str]):
+    rows = [[KeyboardButton(text=name)] for name in warehouse_names if name]
+    rows.append([KeyboardButton(text="🏠 Асосий меню")])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
 def farmers_pagination_keyboard(page: int, has_next: bool):
