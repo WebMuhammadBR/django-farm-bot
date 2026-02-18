@@ -68,7 +68,7 @@ class GoodsGivenDocumentListAPIView(ListAPIView):
     def get_queryset(self):
         return (
             GoodsGivenDocument.objects
-            .select_related("warehouse_receipt", "warehouse_receipt__warehouse", "farmer")
+            .select_related("warehouse", "farmer")
             .annotate(
                 quantity=Coalesce(Sum("items__quantity"), Decimal("0.00")),
             )
