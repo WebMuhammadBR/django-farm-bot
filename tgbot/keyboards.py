@@ -23,7 +23,6 @@ farmers_menu = ReplyKeyboardMarkup(
 warehouse_menu = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text="📊 Ҳисобот"),
             KeyboardButton(text="📥 Кирим"),
             KeyboardButton(text="📤 Чиқим"),
         ],
@@ -139,11 +138,38 @@ def contracts_pagination_keyboard(page: int, has_next: bool, district_index: int
 def warehouse_sections_inline_keyboard(warehouse_id: int):
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📊 Ҳисобот", callback_data=f"warehouse_section:{warehouse_id}:report")],
             [InlineKeyboardButton(text="📥 Кирим", callback_data=f"warehouse_section:{warehouse_id}:receipt")],
             [InlineKeyboardButton(text="📤 Чиқим", callback_data=f"warehouse_section:{warehouse_id}:expense")],
         ]
     )
+
+
+def warehouse_expense_districts_inline_keyboard(warehouse_id: int, districts: list[dict]):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="📊 Умумий",
+                callback_data=f"warehouse_expense_district:{warehouse_id}:0",
+            )
+        ]
+    ]
+
+    for item in districts:
+        district_id = item.get("district_id")
+        district_name = item.get("district_name")
+        if not district_id or not district_name:
+            continue
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=str(district_name),
+                    callback_data=f"warehouse_expense_district:{warehouse_id}:{district_id}",
+                )
+            ]
+        )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, products: list[dict]):
