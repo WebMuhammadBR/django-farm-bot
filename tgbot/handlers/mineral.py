@@ -12,13 +12,13 @@ from tgbot.services.api_client import (
 router = Router()
 
 
-@router.message(F.text == "🌾 Минерал ўғит")
+@router.message(F.text.in_({"🌾 Минерал ўғит", "🏬 Омбор"}))
 @access_required
 async def mineral_menu_handler(message: Message):
-    await message.answer("Минерал ўғит бўлими 👇", reply_markup=mineral_menu)
+    await message.answer("Омбор бўлими 👇", reply_markup=mineral_menu)
 
 
-@router.message(F.text == "🏬 Омбор")
+@router.message(F.text == "🌾 Минерал ўғит омбори")
 @access_required
 async def warehouse_summary_handler(message: Message):
     totals = await get_warehouse_totals()
@@ -35,6 +35,21 @@ async def warehouse_summary_handler(message: Message):
     )
 
     await message.answer(text, reply_markup=warehouse_menu)
+
+
+@router.message(F.text == "📊 Ҳисобот")
+@access_required
+async def warehouse_report_handler(message: Message):
+    totals = await get_warehouse_totals()
+
+    text = (
+        "🏬 Минерал ўғит омбори ҳисоботи\n\n"
+        f"📥 Кирим: {float(totals.get('total_in', 0)):.2f}\n"
+        f"📤 Чиқим: {float(totals.get('total_out', 0)):.2f}\n"
+        f"🧮 Қолдиқ: {float(totals.get('balance', 0)):.2f}"
+    )
+
+    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
 
 
 @router.message(F.text == "📥 Кирим")
@@ -58,7 +73,8 @@ async def warehouse_receipts_handler(message: Message):
             f"   Қоп: {bag_count} | Миқдор: {quantity:.2f}"
         )
 
-    await message.answer("\n".join(lines), reply_markup=warehouse_menu)
+    text = "\n".join(lines)
+    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
 
 
 @router.message(F.text == "📤 Чиқим")
@@ -77,4 +93,5 @@ async def warehouse_expenses_handler(message: Message):
         quantity = float(item.get("quantity") or 0)
         lines.append(f"{index}. {date} | {farmer_name} | Миқдор: {quantity:.2f}")
 
-    await message.answer("\n".join(lines), reply_markup=warehouse_menu)
+    text = "\n".join(lines)
+    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
