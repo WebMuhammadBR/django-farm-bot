@@ -87,12 +87,26 @@ class WarehouseListAPIView(ListAPIView):
 class MineralWarehouseTotalsAPIView(APIView):
 
     def get(self, request):
-        total_in = MineralWarehouseReceipt.objects.aggregate(
+        warehouse_id = request.query_params.get("warehouse_id")
+        product_id = request.query_params.get("product_id")
+
+        receipts = MineralWarehouseReceipt.objects.all()
+        expenses = GoodsGivenDocument.objects.all()
+
+        if warehouse_id:
+            receipts = receipts.filter(warehouse_id=warehouse_id)
+            expenses = expenses.filter(warehouse_id=warehouse_id)
+
+        if product_id:
+            receipts = receipts.filter(product_id=product_id)
+            expenses = expenses.filter(items__product_id=product_id)
+
+        total_in = receipts.aggregate(
             value=Coalesce(Sum("quantity"), Decimal("0.00")),
             amount=Coalesce(Sum("amount"), Decimal("0.00")),
         )
 
-        total_out = GoodsGivenDocument.objects.aggregate(
+        total_out = expenses.aggregate(
             value=Coalesce(Sum("items__quantity"), Decimal("0.00")),
             amount=Coalesce(Sum("items__amount"), Decimal("0.00")),
         )
@@ -110,6 +124,71 @@ class MineralWarehouseTotalsAPIView(APIView):
                 "balance_amount": balance_amount,
             }
         )
+
+
+class WarehouseProductsAPIView(APIView):
+
+    def get(self, request):
+        warehouse_id = request.query_params.get("warehouse_id")
+        movement = request.query_params.get("movement")
+
+        receipt_items = MineralWarehouseReceipt.objects.all()
+        expense_items = GoodsGivenDocument.objects.all()
+
+        if warehouse_id:
+            receipt_items = receipt_items.filter(warehouse_id=warehouse_id)
+            expense_items = expense_items.filter(warehouse_id=warehouse_id)
+
+        products_map = {}
+
+        if movement in (None, "", "all", "in"):
+            for row in (
+                receipt_items
+                .values("product_id", "product__name")
+                .annotate(total_in=Coalesce(Sum("quantity"), Decimal("0.00")))
+            ):
+                product_id = row["product_id"]
+                if not product_id:
+                    continue
+
+                product = products_map.setdefault(
+                    product_id,
+                    {
+                        "product_id": product_id,
+                        "product_name": row["product__name"] or "-",
+                        "total_in": Decimal("0.00"),
+                        "total_out": Decimal("0.00"),
+                    }
+                )
+                product["total_in"] = row["total_in"]
+
+        if movement in (None, "", "all", "out"):
+            for row in (
+                expense_items
+                .values("items__product_id", "items__product__name")
+                .annotate(total_out=Coalesce(Sum("items__quantity"), Decimal("0.00")))
+            ):
+                product_id = row["items__product_id"]
+                if not product_id:
+                    continue
+
+                product = products_map.setdefault(
+                    product_id,
+                    {
+                        "product_id": product_id,
+                        "product_name": row["items__product__name"] or "-",
+                        "total_in": Decimal("0.00"),
+                        "total_out": Decimal("0.00"),
+                    }
+                )
+                product["total_out"] = row["total_out"]
+
+        products = sorted(products_map.values(), key=lambda item: item["product_name"])
+
+        for item in products:
+            item["balance"] = item["total_in"] - item["total_out"]
+
+        return Response(products)
 
 
 class BotUserCheckAPIView(APIView):

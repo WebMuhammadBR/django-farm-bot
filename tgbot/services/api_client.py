@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 import aiohttp
 from tgbot.config import API_BASE_URL
 
@@ -48,4 +50,32 @@ async def get_warehouse_expenses():
 async def get_warehouses():
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{API_BASE_URL}/warehouse/list/") as resp:
+            return await resp.json()
+
+
+async def get_warehouse_totals_by_filters(warehouse_id: int | None = None, product_id: int | None = None):
+    params = {}
+    if warehouse_id:
+        params["warehouse_id"] = warehouse_id
+    if product_id:
+        params["product_id"] = product_id
+
+    query = f"?{urlencode(params)}" if params else ""
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_BASE_URL}/warehouse/totals/{query}") as resp:
+            return await resp.json()
+
+
+async def get_warehouse_products(warehouse_id: int | None = None, movement: str | None = None):
+    params = {}
+    if warehouse_id:
+        params["warehouse_id"] = warehouse_id
+    if movement:
+        params["movement"] = movement
+
+    query = f"?{urlencode(params)}" if params else ""
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_BASE_URL}/warehouse/products/{query}") as resp:
             return await resp.json()
