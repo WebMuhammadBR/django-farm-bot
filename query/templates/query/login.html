@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Tizimga kirish</title>
+    <link rel="stylesheet" href="/static/query/css/login.css" />
+</head>
+<body>
+<div class="card">
+    <h1 class="title">Xush kelibsiz 👋</h1>
+    <p class="subtitle">Tizimga kirish uchun login va parolni kiriting.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" autocomplete="on">
+        {% csrf_token %}
+        {% if next %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% endif %}
+
+        <div class="field">
+            <label class="label" for="id_username">Login</label>
+            <input
+                id="id_username"
+                class="input"
+                type="text"
+                name="username"
+                value="{{ request.POST.username|default:'' }}"
+                placeholder="Loginingiz"
+                required
+                autocomplete="username"
+            />
+        </div>
+
+        <div class="field">
+            <label class="label" for="id_password">Parol</label>
+            <input
+                id="id_password"
+                class="input"
+                type="password"
+                name="password"
+                placeholder="Parolingiz"
+                required
+                autocomplete="current-password"
+            />
+        </div>
+
+        <div class="options">
+            <label class="check-row" for="id_show_password">
+                <input id="id_show_password" type="checkbox" />
+                Parolni ko'rsatish
+            </label>
+
+            <label class="check-row" for="id_remember_me">
+                <input id="id_remember_me" type="checkbox" name="remember_me" {% if request.POST.remember_me %}checked{% endif %} />
+                Meni eslab qolish
+            </label>
+        </div>
+
+        <button class="btn" type="submit">Kirish</button>
+    </form>
+</div>
+
+<script src="/static/query/js/login.js"></script>
+</body>
+</html>
