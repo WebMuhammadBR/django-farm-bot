@@ -19,6 +19,27 @@ farmers_menu = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+
+mineral_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🏬 Омбор")],
+        [KeyboardButton(text="🏠 Асосий меню")],
+    ],
+    resize_keyboard=True,
+)
+
+
+warehouse_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📥 Кирим")],
+        [KeyboardButton(text="📤 Чиқим")],
+        [KeyboardButton(text="🌾 Минерал ўғит")],
+        [KeyboardButton(text="🏠 Асосий меню")],
+    ],
+    resize_keyboard=True,
+)
+
+
 def farmers_pagination_keyboard(page: int, has_next: bool):
 
     buttons = []
@@ -50,7 +71,6 @@ def farmers_pagination_keyboard(page: int, has_next: bool):
     buttons.append(row)
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
 
 
 

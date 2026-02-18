@@ -1,13 +1,20 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from query.models.counterparties import Farmer
-from .serializers import FarmerSerializer
+from decimal import Decimal
+
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
-from decimal import Decimal
 from rest_framework.generics import ListAPIView
-from .serializers import FarmerSummarySerializer
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from query.models.bot import BotUser
+from query.models.counterparties import Farmer
+from query.models.documents import MineralWarehouseReceipt, GoodsGivenDocument
+from .serializers import (
+    FarmerSerializer,
+    FarmerSummarySerializer,
+    MineralWarehouseReceiptSerializer,
+    GoodsGivenDocumentSummarySerializer,
+)
 
 
 class FarmerListAPIView(APIView):
@@ -22,13 +29,9 @@ class FarmerListAPIView(APIView):
                 "massive__id",
                 "name"
             )
-
-
         )
         serializer = FarmerSerializer(farmers, many=True)
         return Response(serializer.data)
-
-
 
 
 class FarmerSummaryAPIView(ListAPIView):
@@ -37,7 +40,7 @@ class FarmerSummaryAPIView(ListAPIView):
     def get_queryset(self):
         return (
             Farmer.objects
-            .select_related("massive__district__region")  # 🔥 ҚЎШИЛДИ
+            .select_related("massive__district__region")
             .annotate(
                 quantity=Coalesce(
                     Sum("contracts__planned_quantity"),
@@ -52,7 +55,40 @@ class FarmerSummaryAPIView(ListAPIView):
         )
 
 
+class MineralWarehouseReceiptListAPIView(ListAPIView):
+    serializer_class = MineralWarehouseReceiptSerializer
 
+    def get_queryset(self):
+        return MineralWarehouseReceipt.objects.order_by("-date", "-id")
+
+
+class GoodsGivenDocumentListAPIView(ListAPIView):
+    serializer_class = GoodsGivenDocumentSummarySerializer
+
+    def get_queryset(self):
+        return GoodsGivenDocument.objects.select_related("warehouse_receipt").order_by("-date", "-id")
+
+
+class MineralWarehouseTotalsAPIView(APIView):
+
+    def get(self, request):
+        total_in = MineralWarehouseReceipt.objects.aggregate(
+            value=Coalesce(Sum("quantity"), Decimal("0.00"))
+        )["value"]
+
+        total_out = GoodsGivenDocument.objects.aggregate(
+            value=Coalesce(Sum("items__quantity"), Decimal("0.00"))
+        )["value"]
+
+        balance = total_in - total_out
+
+        return Response(
+            {
+                "total_in": total_in,
+                "total_out": total_out,
+                "balance": balance,
+            }
+        )
 
 
 class BotUserCheckAPIView(APIView):
