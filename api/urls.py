@@ -8,6 +8,7 @@ from .views import (
     GoodsGivenDocumentListAPIView,
     MineralWarehouseTotalsAPIView,
     WarehouseListAPIView,
+    WarehouseProductsAPIView,
 )
 
 urlpatterns = [
@@ -17,5 +18,6 @@ urlpatterns = [
     path("warehouse/list/", WarehouseListAPIView.as_view()),
     path("warehouse/receipts/", MineralWarehouseReceiptListAPIView.as_view()),
     path("warehouse/expenses/", GoodsGivenDocumentListAPIView.as_view()),
+    path("warehouse/products/", WarehouseProductsAPIView.as_view()),
     path("bot-user/check/", BotUserCheckAPIView.as_view()),
 ]
