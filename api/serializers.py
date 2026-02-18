@@ -10,6 +10,7 @@ class FarmerSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True
     )
+    district = serializers.SerializerMethodField()
 
     class Meta:
         model = Farmer
@@ -19,7 +20,14 @@ class FarmerSerializer(serializers.ModelSerializer):
             "inn",
             "phone",
             "balance",
+            "district",
         )
+
+    def get_district(self, obj):
+        massive = obj.massive
+        if massive and massive.district:
+            return massive.district.name
+        return None
 
 
 class FarmerSummarySerializer(serializers.ModelSerializer):
