@@ -297,20 +297,20 @@ async def _send_warehouse_movements_page(
 
     if movement == "in":
         lines.append("📥 Кирим деталлари:")
-        lines.append(f"{'Сана':<10} {'Накладной №':<4} {'Миқдори':>10}")
+        lines.append(f"{'Сана':<12} {'Нак-№':<5} {'Миқдори':>10}")
         lines.append("-" * 28)
         for item in page_items:
             date_text = _format_date_ddmmyyyy(item.get("date"))
             invoice_number = str(item.get("invoice_number") or "-")
-            quantity = f"{float(item.get('quantity') or 0):.2f}"
-            lines.append(f"{date_text:<10} {invoice_number:<4} {quantity:>10}")
+            quantity = f"{float(item.get('quantity') or 0):.0f}"
+            lines.append(f"{date_text:<14} {invoice_number:<7} {quantity:>5}")
     else:
         lines.append("📤 Чиқим деталлари:")
         lines.append(f"{'№':<3} {'Фермер номи':<17} {'Миқдори':>9}")
         lines.append("-" * 31)
         for index, item in enumerate(page_items, start=start + 1):
             farmer_name = (item.get("farmer_name") or "-")[:17]
-            quantity = f"{float(item.get('quantity') or 0):.2f}"
+            quantity = f"{float(item.get('quantity') or 0):.0f}"
             lines.append(f"{index:<3} {farmer_name:<17} {quantity:>9}")
 
     content = "\n".join(lines)
