@@ -313,7 +313,7 @@ async def _send_warehouse_movements_page(
     else:
         lines.append("📤 Чиқим деталлари:")
         lines.append(f"{'№':<3} {'Фермер номи':<16} {'Миқдори':>8} {'Га/кг':>6}")
-        lines.append("-" * 40)
+        lines.append("-" * 37)
         for index, item in enumerate(page_items, start=start + 1):
             farmer_name = (item.get("farmer_name") or "-")[:16]
             quantity = f"{float(item.get('quantity') or 0):.0f}"
