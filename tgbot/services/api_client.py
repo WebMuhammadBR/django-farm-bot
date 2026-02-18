@@ -79,3 +79,21 @@ async def get_warehouse_products(warehouse_id: int | None = None, movement: str 
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{API_BASE_URL}/warehouse/products/{query}") as resp:
             return await resp.json()
+
+
+async def get_warehouse_movements(
+    movement: str,
+    warehouse_id: int | None = None,
+    product_id: int | None = None,
+):
+    params = {"movement": movement}
+    if warehouse_id:
+        params["warehouse_id"] = warehouse_id
+    if product_id:
+        params["product_id"] = product_id
+
+    query = f"?{urlencode(params)}" if params else ""
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_BASE_URL}/warehouse/movements/{query}") as resp:
+            return await resp.json()

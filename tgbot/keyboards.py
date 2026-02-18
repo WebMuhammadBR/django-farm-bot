@@ -163,4 +163,13 @@ def warehouse_products_inline_keyboard(warehouse_id: int, movement: str, product
             ]
         )
 
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="📥 Excel",
+                callback_data=f"warehouse_export:{warehouse_id}:{movement}"
+            )
+        ]
+    )
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)

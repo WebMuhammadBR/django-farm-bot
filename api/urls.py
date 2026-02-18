@@ -9,6 +9,7 @@ from .views import (
     MineralWarehouseTotalsAPIView,
     WarehouseListAPIView,
     WarehouseProductsAPIView,
+    WarehouseMovementsAPIView,
 )
 
 urlpatterns = [
@@ -19,5 +20,6 @@ urlpatterns = [
     path("warehouse/receipts/", MineralWarehouseReceiptListAPIView.as_view()),
     path("warehouse/expenses/", GoodsGivenDocumentListAPIView.as_view()),
     path("warehouse/products/", WarehouseProductsAPIView.as_view()),
+    path("warehouse/movements/", WarehouseMovementsAPIView.as_view()),
     path("bot-user/check/", BotUserCheckAPIView.as_view()),
 ]

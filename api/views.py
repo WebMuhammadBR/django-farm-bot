@@ -191,6 +191,74 @@ class WarehouseProductsAPIView(APIView):
         return Response(products)
 
 
+class WarehouseMovementsAPIView(APIView):
+
+    def get(self, request):
+        warehouse_id = request.query_params.get("warehouse_id")
+        product_id = request.query_params.get("product_id")
+        movement = request.query_params.get("movement")
+
+        if movement not in {"in", "out"}:
+            return Response([])
+
+        if movement == "in":
+            receipts = MineralWarehouseReceipt.objects.select_related("warehouse", "product")
+
+            if warehouse_id:
+                receipts = receipts.filter(warehouse_id=warehouse_id)
+            if product_id:
+                receipts = receipts.filter(product_id=product_id)
+
+            return Response(
+                [
+                    {
+                        "id": item.id,
+                        "date": item.date,
+                        "warehouse_name": item.warehouse.name if item.warehouse else None,
+                        "product_id": item.product_id,
+                        "product_name": item.product.name if item.product else None,
+                        "invoice_number": item.invoice_number,
+                        "bag_count": item.bag_count,
+                        "quantity": item.quantity,
+                    }
+                    for item in receipts.order_by("-date", "-id")
+                ]
+            )
+
+        expense_items = (
+            GoodsGivenDocument.objects
+            .select_related("warehouse", "farmer")
+            .prefetch_related("items__product")
+        )
+
+        if warehouse_id:
+            expense_items = expense_items.filter(warehouse_id=warehouse_id)
+        if product_id:
+            expense_items = expense_items.filter(items__product_id=product_id)
+
+        result = []
+        for document in expense_items.order_by("-date", "-id").distinct():
+            items = document.items.select_related("product")
+            if product_id:
+                items = items.filter(product_id=product_id)
+
+            for item in items:
+                result.append(
+                    {
+                        "id": item.id,
+                        "date": document.date,
+                        "warehouse_name": document.warehouse.name if document.warehouse else None,
+                        "number": document.number,
+                        "farmer_name": document.farmer.name if document.farmer else None,
+                        "product_id": item.product_id,
+                        "product_name": item.product.name if item.product else None,
+                        "quantity": item.quantity,
+                    }
+                )
+
+        return Response(result)
+
+
 class BotUserCheckAPIView(APIView):
 
     def post(self, request):
