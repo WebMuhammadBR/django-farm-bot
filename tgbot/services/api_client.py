@@ -1,3 +1,4 @@
+import asyncio
 from urllib.parse import urlencode
 
 import aiohttp
@@ -5,16 +6,25 @@ from tgbot.config import API_BASE_URL
 
 
 async def check_access(telegram_id: int, full_name: str):
+    timeout = aiohttp.ClientTimeout(total=10)
+    payload = {
+        "telegram_id": telegram_id,
+        "full_name": (full_name or "").strip()[:255],
+    }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            f"{API_BASE_URL}/bot-user/check/",
-            json={
-                "telegram_id": telegram_id,
-                "full_name": full_name
-            }
-        ) as resp:
-            return await resp.json()
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                f"{API_BASE_URL}/bot-user/check/",
+                json=payload,
+            ) as resp:
+                if resp.status != 200:
+                    return {"allowed": False}
+
+                data = await resp.json()
+                return data if isinstance(data, dict) else {"allowed": False}
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
+        return {"allowed": False}
 
 
 async def get_farmers():

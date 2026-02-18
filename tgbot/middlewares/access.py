@@ -18,8 +18,9 @@ def access_required(handler):
             return
 
         result = await check_access(telegram_id, full_name)
+        is_allowed = isinstance(result, dict) and bool(result.get("allowed"))
 
-        if not result["allowed"]:
+        if not is_allowed:
             if isinstance(event, Message):
                 await event.answer("⛔️ Сизга рухсат берилмаган.")
             else:
