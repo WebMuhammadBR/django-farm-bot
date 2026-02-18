@@ -93,6 +93,8 @@ class MineralWarehouseReceiptSerializer(serializers.ModelSerializer):
 
 class GoodsGivenDocumentSummarySerializer(serializers.ModelSerializer):
     warehouse_name = serializers.CharField(source="warehouse_receipt.warehouse.name", read_only=True)
+    farmer_name = serializers.CharField(source="farmer.name", read_only=True)
+    quantity = serializers.DecimalField(max_digits=20, decimal_places=2, read_only=True)
 
     class Meta:
         model = GoodsGivenDocument
@@ -101,5 +103,7 @@ class GoodsGivenDocumentSummarySerializer(serializers.ModelSerializer):
             "date",
             "number",
             "warehouse_name",
+            "farmer_name",
+            "quantity",
             "total_amount",
         )
