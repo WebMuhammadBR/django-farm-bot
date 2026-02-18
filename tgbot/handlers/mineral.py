@@ -1,6 +1,7 @@
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
+from tgbot.excel_export import warehouse_expenses_to_excel, warehouse_receipts_to_excel
 from tgbot.keyboards import (
     warehouse_menu,
     warehouse_names_menu,
@@ -10,6 +11,7 @@ from tgbot.keyboards import (
 from tgbot.middlewares.access import access_required
 from tgbot.services.api_client import (
     get_warehouse_expenses,
+    get_warehouse_movements,
     get_warehouse_products,
     get_warehouse_receipts,
     get_warehouse_totals,
@@ -104,7 +106,8 @@ async def warehouse_expenses_handler(message: Message):
         date = item.get("date") or "-"
         farmer_name = item.get("farmer_name") or "-"
         quantity = float(item.get("quantity") or 0)
-        lines.append(f"{index}. {date} | {farmer_name} | Миқдор: {quantity:.2f}")
+        number = item.get("number") or "-"
+        lines.append(f"{index}. {date} | №{number} | {farmer_name} | Миқдор: {quantity:.2f}")
 
     text = "\n".join(lines)
     await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
@@ -149,10 +152,11 @@ async def warehouse_section_handler(callback: CallbackQuery):
             balance = float(item.get("balance") or 0)
             lines.append(
                 f"{idx}. {product_name}\n"
-                f"   📥 {total_in:.2f} | 📤 {total_out:.2f} | 🧮 {balance:.2f}"
+                f"   📥 Кирим: {total_in:.2f} | 📤 Чиқим: {total_out:.2f} | 🧮 Қолдиқ: {balance:.2f}"
             )
 
-        await callback.message.edit_text("\n".join(lines))
+        content = "\n".join(lines)
+        await callback.message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML")
         await callback.answer()
         return
 
@@ -180,6 +184,7 @@ async def warehouse_product_handler(callback: CallbackQuery):
     product_id = int(product_id)
 
     totals = await get_warehouse_totals_by_filters(warehouse_id=warehouse_id, product_id=product_id)
+    movements = await get_warehouse_movements(movement=movement, warehouse_id=warehouse_id, product_id=product_id)
     warehouse_map = await _warehouse_map()
     warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
 
@@ -189,13 +194,54 @@ async def warehouse_product_handler(callback: CallbackQuery):
         "Маҳсулот",
     )
 
-    text = (
-        f"🏬 {warehouse_name}\n"
-        f"📦 {product_name}\n\n"
-        f"📥 Кирим: {float(totals.get('total_in', 0)):.2f}\n"
-        f"📤 Чиқим: {float(totals.get('total_out', 0)):.2f}\n"
-        f"🧮 Қолдиқ: {float(totals.get('balance', 0)):.2f}"
-    )
+    lines = [
+        f"🏬 {warehouse_name}",
+        f"📦 {product_name}",
+        "",
+        f"📥 Кирим: {float(totals.get('total_in', 0)):.2f}",
+        f"📤 Чиқим: {float(totals.get('total_out', 0)):.2f}",
+        f"🧮 Қолдиқ: {float(totals.get('balance', 0)):.2f}",
+        "",
+    ]
 
-    await callback.message.edit_text(text)
+    if movement == "in":
+        lines.append("📥 Кирим деталлари:")
+        for index, item in enumerate(movements[:30], start=1):
+            lines.append(
+                f"{index}. {item.get('date') or '-'} | №{item.get('invoice_number') or '-'} | "
+                f"миқдори: {float(item.get('quantity') or 0):.2f}"
+            )
+    else:
+        lines.append("📤 Чиқим деталлари:")
+        for index, item in enumerate(movements[:30], start=1):
+            lines.append(
+                f"{index}. {item.get('date') or '-'} | №{item.get('number') or '-'} | "
+                f"{item.get('farmer_name') or '-'} | миқдори: {float(item.get('quantity') or 0):.2f}"
+            )
+
+    content = "\n".join(lines)
+    await callback.message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("warehouse_export:"))
+@access_required
+async def warehouse_export_handler(callback: CallbackQuery):
+    _, warehouse_id, movement = callback.data.split(":", maxsplit=2)
+    warehouse_id = int(warehouse_id)
+    data = await get_warehouse_movements(movement=movement, warehouse_id=warehouse_id)
+
+    if movement == "in":
+        file_buffer = await warehouse_receipts_to_excel(data)
+        filename = "warehouse_receipts.xlsx"
+    else:
+        file_buffer = await warehouse_expenses_to_excel(data)
+        filename = "warehouse_expenses.xlsx"
+
+    if not file_buffer:
+        await callback.answer("Маълумот йўқ", show_alert=True)
+        return
+
+    file = BufferedInputFile(file_buffer.getvalue(), filename=filename)
+    await callback.message.answer_document(document=file)
     await callback.answer()
