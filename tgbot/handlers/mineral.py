@@ -30,7 +30,8 @@ async def warehouse_summary_handler(message: Message):
         f"🧮 Қолдиқ (миқдор): {float(totals.get('balance', 0)):.2f}\n\n"
         f"💰 Умумий кирим (сумма): {float(totals.get('total_in_amount', 0)):.2f}\n"
         f"💸 Умумий чиқим (сумма): {float(totals.get('total_out_amount', 0)):.2f}\n"
-        f"💵 Қолдиқ (сумма): {float(totals.get('balance_amount', 0)):.2f}"
+        f"💵 Қолдиқ (сумма): {float(totals.get('balance_amount', 0)):.2f}\n\n"
+        "Қуйидаги тугмалардан керакли ҳисоботни танланг 👇"
     )
 
     await message.answer(text, reply_markup=warehouse_menu)
@@ -47,10 +48,14 @@ async def warehouse_receipts_handler(message: Message):
 
     lines = ["📥 Омбор кирим рўйхати", ""]
     for index, item in enumerate(receipts[:30], start=1):
+        invoice_number = item.get("invoice_number") or "-"
+        bag_count = item.get("bag_count") or 0
+        quantity = float(item.get("quantity") or 0)
+        date = item.get("date") or "-"
+
         lines.append(
-            f"{index}. {item['date']} | {item['warehouse']} | №{item['invoice_number']}\n"
-            f"   🚚 {item['transport_type_display']} ({item['transport_number']}) | Қоп: {item['bag_count']}\n"
-            f"   📦 {item['product']} | Миқдор: {float(item['quantity']):.2f} | Нарх: {float(item['price']):.2f} | Сумма: {float(item['amount']):.2f}"
+            f"{index}. {date} | №{invoice_number}\n"
+            f"   Қоп: {bag_count} | Миқдор: {quantity:.2f}"
         )
 
     await message.answer("\n".join(lines), reply_markup=warehouse_menu)
@@ -67,9 +72,9 @@ async def warehouse_expenses_handler(message: Message):
 
     lines = ["📤 Омбор чиқим рўйхати", ""]
     for index, item in enumerate(expenses[:30], start=1):
-        warehouse_name = item.get("warehouse_name") or "-"
-        lines.append(
-            f"{index}. {item['date']} | {warehouse_name} | №{item['number']} | Сумма: {float(item['total_amount']):.2f}"
-        )
+        date = item.get("date") or "-"
+        farmer_name = item.get("farmer_name") or "-"
+        quantity = float(item.get("quantity") or 0)
+        lines.append(f"{index}. {date} | {farmer_name} | Миқдор: {quantity:.2f}")
 
     await message.answer("\n".join(lines), reply_markup=warehouse_menu)

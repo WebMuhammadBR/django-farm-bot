@@ -66,7 +66,14 @@ class GoodsGivenDocumentListAPIView(ListAPIView):
     serializer_class = GoodsGivenDocumentSummarySerializer
 
     def get_queryset(self):
-        return GoodsGivenDocument.objects.select_related("warehouse_receipt", "warehouse_receipt__warehouse").order_by("-date", "-id")
+        return (
+            GoodsGivenDocument.objects
+            .select_related("warehouse_receipt", "warehouse_receipt__warehouse", "farmer")
+            .annotate(
+                quantity=Coalesce(Sum("items__quantity"), Decimal("0.00")),
+            )
+            .order_by("-date", "-id")
+        )
 
 
 class MineralWarehouseTotalsAPIView(APIView):

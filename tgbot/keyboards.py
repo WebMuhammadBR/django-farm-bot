@@ -31,8 +31,7 @@ mineral_menu = ReplyKeyboardMarkup(
 
 warehouse_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📥 Кирим")],
-        [KeyboardButton(text="📤 Чиқим")],
+        [KeyboardButton(text="📥 Кирим"), KeyboardButton(text="📤 Чиқим")],
         [KeyboardButton(text="🌾 Минерал ўғит")],
         [KeyboardButton(text="🏠 Асосий меню")],
     ],
