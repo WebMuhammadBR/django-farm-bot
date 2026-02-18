@@ -70,6 +70,8 @@ class FarmerSummarySerializer(serializers.ModelSerializer):
 
 class MineralWarehouseReceiptSerializer(serializers.ModelSerializer):
     transport_type_display = serializers.CharField(source="get_transport_type_display", read_only=True)
+    product = serializers.CharField(source="product.name", read_only=True)
+    warehouse = serializers.CharField(source="warehouse.name", read_only=True)
 
     class Meta:
         model = MineralWarehouseReceipt
@@ -81,13 +83,16 @@ class MineralWarehouseReceiptSerializer(serializers.ModelSerializer):
             "transport_type_display",
             "transport_number",
             "bag_count",
+            "product",
             "quantity",
-            "warehouse_name",
+            "price",
+            "amount",
+            "warehouse",
         )
 
 
 class GoodsGivenDocumentSummarySerializer(serializers.ModelSerializer):
-    warehouse_name = serializers.CharField(source="warehouse_receipt.warehouse_name", read_only=True)
+    warehouse_name = serializers.CharField(source="warehouse_receipt.warehouse.name", read_only=True)
 
     class Meta:
         model = GoodsGivenDocument
