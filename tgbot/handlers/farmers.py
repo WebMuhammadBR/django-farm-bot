@@ -11,7 +11,7 @@ router = Router()
 PER_PAGE = 25
 
 
-@router.message(F.text == "📋 Фермерлар рўйхати")
+@router.message(F.text == "📋 Фермер Баланс")
 @access_required
 async def farmers_handler(message: Message):
     data = await get_farmers()
@@ -46,7 +46,7 @@ async def send_page(target, page, district_index, edit):
     district_title = "Умумий" if district == "all" else district
 
     text = build_page_text(
-        title=f"📋 Фермерлар рўйхати: {district_title}",
+        title=f"📋 Фермер Баланс: {district_title}",
         headers=f"{'№':<3} {'Фермер номи':<18} {'Баланс':>13}",
         rows=[
             f"{index:<3} {farmer['name'][:18]:<18} {float(farmer['balance']):>13,.1f}"

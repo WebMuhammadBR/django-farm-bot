@@ -4,7 +4,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 main_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📋 Фермерлар")],
-        [KeyboardButton(text="📑 Шартномалар")],
         [KeyboardButton(text="🏬 Омбор")],
     ],
     resize_keyboard=True
@@ -13,7 +12,8 @@ main_menu = ReplyKeyboardMarkup(
 
 farmers_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📋 Фермерлар рўйхати")],
+        [KeyboardButton(text="📋 Фермер Баланс")],
+        [KeyboardButton(text="📑 Шартномалар")],
         [KeyboardButton(text="🏠 Асосий меню")],
     ],
     resize_keyboard=True,
