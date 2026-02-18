@@ -4,23 +4,24 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from tgbot.excel_export import warehouse_expenses_to_excel, warehouse_receipts_to_excel
 from tgbot.keyboards import (
     warehouse_expense_districts_inline_keyboard,
+    warehouse_movement_menu,
     warehouse_menu,
     warehouse_names_menu,
+    warehouse_movements_pagination_keyboard,
     warehouse_products_inline_keyboard,
-    warehouse_sections_inline_keyboard,
 )
 from tgbot.middlewares.access import access_required
 from tgbot.services.api_client import (
-    get_warehouse_expenses,
     get_warehouse_expense_districts,
     get_warehouse_movements,
     get_warehouse_products,
-    get_warehouse_receipts,
     get_warehouse_totals_by_filters,
     get_warehouses,
 )
 
 router = Router()
+PER_PAGE = 25
+USER_SELECTED_WAREHOUSE: dict[int, int] = {}
 
 WAREHOUSE_RECEIPT_NAMES = {"📥 Кирим", "kirim", "krim", "кирим"}
 WAREHOUSE_EXPENSE_NAMES = {"📤 Чиқим", "chiqim", "чиқим"}
@@ -40,10 +41,7 @@ async def _warehouse_map():
 async def mineral_menu_handler(message: Message):
     warehouse_map = await _warehouse_map()
     if not warehouse_map:
-        await message.answer(
-            "Омборлар топилмади. Қуйидаги тугмалардан фойдаланинг 👇",
-            reply_markup=warehouse_menu,
-        )
+        await message.answer("Омборлар топилмади. Қуйидаги тугмалардан фойдаланинг 👇", reply_markup=warehouse_menu)
         return
 
     await message.answer(
@@ -52,50 +50,61 @@ async def mineral_menu_handler(message: Message):
     )
 
 
+@router.message(F.text == "⬅️ Омборлар рўйхати")
+@access_required
+async def back_to_warehouses_handler(message: Message):
+    warehouse_map = await _warehouse_map()
+    await message.answer(
+        "🏬 Омборлар рўйхати 👇",
+        reply_markup=warehouse_names_menu(list(warehouse_map.values())),
+    )
+
+
 @router.message(F.text.func(lambda value: value and value.lower() in {name.lower() for name in WAREHOUSE_RECEIPT_NAMES}))
 @access_required
-async def warehouse_receipts_handler(message: Message):
-    receipts = await get_warehouse_receipts()
-
-    if not receipts:
-        await message.answer("Кирим рўйхати бўш", reply_markup=warehouse_menu)
+async def warehouse_receipt_products_handler(message: Message):
+    warehouse_map = await _warehouse_map()
+    warehouse_id = USER_SELECTED_WAREHOUSE.get(message.from_user.id)
+    if not warehouse_id:
+        await message.answer("Аввал омборни танланг", reply_markup=warehouse_names_menu(list(warehouse_map.values())))
         return
 
-    lines = ["📥 Омбор кирим рўйхати", ""]
-    for index, item in enumerate(receipts[:30], start=1):
-        invoice_number = item.get("invoice_number") or "-"
-        bag_count = item.get("bag_count") or 0
-        quantity = float(item.get("quantity") or 0)
-        date = item.get("date") or "-"
+    warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
+    products = await get_warehouse_products(warehouse_id=warehouse_id, movement="in")
+    if not products:
+        await message.answer(f"🏬 {warehouse_name}\n\n📥 Кирим бўйича маълумот топилмади.")
+        return
 
-        lines.append(
-            f"{index}. {date} | №{invoice_number}\n"
-            f"   Қоп: {bag_count} | Миқдор: {quantity:.2f}"
-        )
-
-    text = "\n".join(lines)
-    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
+    await message.answer(
+        f"🏬 {warehouse_name}\n📥 Кирим учун маҳсулотни танланг:",
+        reply_markup=warehouse_products_inline_keyboard(
+            warehouse_id=warehouse_id,
+            movement="in",
+            products=products,
+            back_callback=f"warehouse_back_sections:{warehouse_id}",
+        ),
+    )
 
 
 @router.message(F.text.func(lambda value: value and value.lower() in {name.lower() for name in WAREHOUSE_EXPENSE_NAMES}))
 @access_required
-async def warehouse_expenses_handler(message: Message):
-    expenses = await get_warehouse_expenses()
-
-    if not expenses:
-        await message.answer("Чиқим рўйхати бўш", reply_markup=warehouse_menu)
+async def warehouse_expense_districts_handler(message: Message):
+    warehouse_map = await _warehouse_map()
+    warehouse_id = USER_SELECTED_WAREHOUSE.get(message.from_user.id)
+    if not warehouse_id:
+        await message.answer("Аввал омборни танланг", reply_markup=warehouse_names_menu(list(warehouse_map.values())))
         return
 
-    lines = ["📤 Омбор чиқим рўйхати", ""]
-    for index, item in enumerate(expenses[:30], start=1):
-        date = item.get("date") or "-"
-        farmer_name = item.get("farmer_name") or "-"
-        quantity = float(item.get("quantity") or 0)
-        number = item.get("number") or "-"
-        lines.append(f"{index}. {date} | №{number} | {farmer_name} | Миқдор: {quantity:.2f}")
+    warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
+    districts = await get_warehouse_expense_districts(warehouse_id=warehouse_id)
+    if not districts:
+        await message.answer(f"🏬 {warehouse_name}\n\nЧиқим бўйича туманлар топилмади.")
+        return
 
-    text = "\n".join(lines)
-    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
+    await message.answer(
+        f"🏬 {warehouse_name}\n📤 Чиқим учун туманни танланг:",
+        reply_markup=warehouse_expense_districts_inline_keyboard(warehouse_id, districts),
+    )
 
 
 @router.message(F.text.func(lambda value: bool(value)))
@@ -108,48 +117,26 @@ async def warehouse_item_handler(message: Message):
     if not warehouse_id:
         return
 
+    USER_SELECTED_WAREHOUSE[message.from_user.id] = warehouse_id
+
     await message.answer(
         f"🏬 {selected}\nКеракли бўлимни танланг:",
-        reply_markup=warehouse_sections_inline_keyboard(warehouse_id),
+        reply_markup=warehouse_movement_menu(),
     )
 
 
-@router.callback_query(F.data.startswith("warehouse_section:"))
+@router.callback_query(F.data.startswith("warehouse_back_sections:"))
 @access_required
-async def warehouse_section_handler(callback: CallbackQuery):
-    _, warehouse_id, section = callback.data.split(":", maxsplit=2)
+async def warehouse_back_sections_handler(callback: CallbackQuery):
+    _, warehouse_id = callback.data.split(":", maxsplit=1)
     warehouse_id = int(warehouse_id)
     warehouse_map = await _warehouse_map()
     warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
 
-    movement = "in" if section == "receipt" else "out"
-    title = "📥 Кирим" if movement == "in" else "📤 Чиқим"
-
-    if movement == "out":
-        districts = await get_warehouse_expense_districts(warehouse_id=warehouse_id)
-        if not districts:
-            await callback.message.edit_text(f"🏬 {warehouse_name}\n\nЧиқим бўйича туманлар топилмади.")
-            await callback.answer()
-            return
-
-        await callback.message.edit_text(
-            f"🏬 {warehouse_name}\n📤 Чиқим учун туманни танланг:",
-            reply_markup=warehouse_expense_districts_inline_keyboard(warehouse_id, districts),
-        )
-        await callback.answer()
-        return
-
-    products = await get_warehouse_products(warehouse_id=warehouse_id, movement=movement)
-
-    if not products:
-        await callback.message.edit_text(f"🏬 {warehouse_name}\n\n{title} бўйича маълумот топилмади.")
-        await callback.answer()
-        return
-
     await callback.message.edit_text(
-        f"🏬 {warehouse_name}\n{title} учун маҳсулотни танланг:",
-        reply_markup=warehouse_products_inline_keyboard(warehouse_id, movement, products),
+        f"🏬 {warehouse_name}\nКеракли бўлимни танланг:\n\n📌 Кирим/Чиқимни пастдаги клавиатурадан танланг."
     )
+    await callback.message.answer("Танланг 👇", reply_markup=warehouse_movement_menu())
     await callback.answer()
 
 
@@ -175,7 +162,28 @@ async def warehouse_expense_district_handler(callback: CallbackQuery):
 
     await callback.message.edit_text(
         f"🏬 {warehouse_name}\n📤 Чиқим учун маҳсулотни танланг:",
-        reply_markup=warehouse_products_inline_keyboard(warehouse_id, f"out_d{district_id}", products),
+        reply_markup=warehouse_products_inline_keyboard(
+            warehouse_id,
+            f"out_d{district_id}",
+            products,
+            back_callback=f"warehouse_back_to_districts:{warehouse_id}",
+        ),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("warehouse_back_to_districts:"))
+@access_required
+async def warehouse_back_to_districts_handler(callback: CallbackQuery):
+    _, warehouse_id = callback.data.split(":", maxsplit=1)
+    warehouse_id = int(warehouse_id)
+    warehouse_map = await _warehouse_map()
+    warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
+    districts = await get_warehouse_expense_districts(warehouse_id=warehouse_id)
+
+    await callback.message.edit_text(
+        f"🏬 {warehouse_name}\n📤 Чиқим учун туманни танланг:",
+        reply_markup=warehouse_expense_districts_inline_keyboard(warehouse_id, districts),
     )
     await callback.answer()
 
@@ -193,29 +201,67 @@ async def warehouse_product_handler(callback: CallbackQuery):
         actual_movement = "out"
         district_id = int(movement.removeprefix("out_d"))
 
+    await _send_warehouse_movements_page(
+        message=callback.message,
+        warehouse_id=warehouse_id,
+        movement=actual_movement,
+        product_id=product_id,
+        district_id=district_id or 0,
+        page=1,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("warehouse_movements_page:"))
+@access_required
+async def warehouse_movements_page_handler(callback: CallbackQuery):
+    _, warehouse_id, movement, product_id, district_id, page = callback.data.split(":", maxsplit=5)
+    await _send_warehouse_movements_page(
+        message=callback.message,
+        warehouse_id=int(warehouse_id),
+        movement=movement,
+        product_id=int(product_id),
+        district_id=int(district_id),
+        page=int(page),
+    )
+    await callback.answer()
+
+
+async def _send_warehouse_movements_page(
+    message,
+    warehouse_id: int,
+    movement: str,
+    product_id: int,
+    district_id: int,
+    page: int,
+):
     totals = await get_warehouse_totals_by_filters(
         warehouse_id=warehouse_id,
         product_id=product_id,
-        district_id=district_id,
+        district_id=None if district_id == 0 else district_id,
     )
     movements = await get_warehouse_movements(
-        movement=actual_movement,
+        movement=movement,
         warehouse_id=warehouse_id,
         product_id=product_id,
-        district_id=district_id,
+        district_id=None if district_id == 0 else district_id,
     )
     warehouse_map = await _warehouse_map()
     warehouse_name = warehouse_map.get(warehouse_id, "Омбор")
 
     products = await get_warehouse_products(
         warehouse_id=warehouse_id,
-        movement=actual_movement,
-        district_id=district_id,
+        movement=movement,
+        district_id=None if district_id == 0 else district_id,
     )
     product_name = next(
         (item.get("product_name") for item in products if int(item.get("product_id", 0)) == product_id),
         "Маҳсулот",
     )
+
+    start = (page - 1) * PER_PAGE
+    end = start + PER_PAGE
+    page_items = movements[start:end]
 
     lines = [
         f"🏬 {warehouse_name}",
@@ -227,24 +273,38 @@ async def warehouse_product_handler(callback: CallbackQuery):
         "",
     ]
 
-    if actual_movement == "in":
+    if movement == "in":
         lines.append("📥 Кирим деталлари:")
-        for index, item in enumerate(movements[:30], start=1):
+        for index, item in enumerate(page_items, start=start + 1):
             lines.append(
                 f"{index}. {item.get('date') or '-'} | №{item.get('invoice_number') or '-'} | "
                 f"миқдори: {float(item.get('quantity') or 0):.2f}"
             )
     else:
         lines.append("📤 Чиқим деталлари:")
-        for index, item in enumerate(movements[:30], start=1):
+        for index, item in enumerate(page_items, start=start + 1):
             lines.append(
                 f"{index}. {item.get('date') or '-'} | №{item.get('number') or '-'} | "
                 f"{item.get('farmer_name') or '-'} | миқдори: {float(item.get('quantity') or 0):.2f}"
             )
 
     content = "\n".join(lines)
-    await callback.message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML")
-    await callback.answer()
+
+    if movement == "in":
+        back_callback = f"warehouse_back_sections:{warehouse_id}"
+    else:
+        back_callback = f"warehouse_back_to_districts:{warehouse_id}"
+
+    keyboard = warehouse_movements_pagination_keyboard(
+        warehouse_id=warehouse_id,
+        movement=movement,
+        product_id=product_id,
+        district_id=district_id,
+        page=page,
+        has_next=end < len(movements),
+        back_callback=back_callback,
+    )
+    await message.edit_text(f"<pre>{content}</pre>", parse_mode="HTML", reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("warehouse_export:"))
@@ -252,9 +312,19 @@ async def warehouse_product_handler(callback: CallbackQuery):
 async def warehouse_export_handler(callback: CallbackQuery):
     _, warehouse_id, movement = callback.data.split(":", maxsplit=2)
     warehouse_id = int(warehouse_id)
-    data = await get_warehouse_movements(movement=movement, warehouse_id=warehouse_id)
+    district_id = None
+    actual_movement = movement
+    if movement.startswith("out_d"):
+        actual_movement = "out"
+        district_id = int(movement.removeprefix("out_d"))
 
-    if movement == "in":
+    data = await get_warehouse_movements(
+        movement=actual_movement,
+        warehouse_id=warehouse_id,
+        district_id=district_id,
+    )
+
+    if actual_movement == "in":
         file_buffer = await warehouse_receipts_to_excel(data)
         filename = "warehouse_receipts.xlsx"
     else:
