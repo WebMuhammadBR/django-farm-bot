@@ -18,23 +18,14 @@ async def mineral_menu_handler(message: Message):
     await message.answer("Омбор бўлими 👇", reply_markup=mineral_menu)
 
 
-@router.message(F.text == "🌾 Минерал ўғит омбори")
+@router.message(F.text.in_({"🌾 Оғит омбор (барча Warehouse)", "🌾 Минерал ўғит омбори"}))
 @access_required
 async def warehouse_summary_handler(message: Message):
-    totals = await get_warehouse_totals()
-
-    text = (
-        "🏬 Омбор ҳисоботи\n\n"
-        f"📥 Умумий кирим (миқдор): {float(totals.get('total_in', 0)):.2f}\n"
-        f"📤 Умумий чиқим (миқдор): {float(totals.get('total_out', 0)):.2f}\n"
-        f"🧮 Қолдиқ (миқдор): {float(totals.get('balance', 0)):.2f}\n\n"
-        f"💰 Умумий кирим (сумма): {float(totals.get('total_in_amount', 0)):.2f}\n"
-        f"💸 Умумий чиқим (сумма): {float(totals.get('total_out_amount', 0)):.2f}\n"
-        f"💵 Қолдиқ (сумма): {float(totals.get('balance_amount', 0)):.2f}\n\n"
-        "Қуйидаги тугмалардан керакли ҳисоботни танланг 👇"
+    await message.answer(
+        "🌾 Оғит омбор (барча Warehouse)\n\nҚуйидаги тугмалардан керакли бўлимни танланг 👇",
+        reply_markup=warehouse_menu,
     )
 
-    await message.answer(text, reply_markup=warehouse_menu)
 
 
 @router.message(F.text == "📊 Ҳисобот")
