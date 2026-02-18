@@ -7,6 +7,7 @@ from tgbot.services.api_client import (
     get_warehouse_totals,
     get_warehouse_receipts,
     get_warehouse_expenses,
+    get_warehouses,
 )
 
 router = Router()
@@ -18,11 +19,11 @@ async def mineral_menu_handler(message: Message):
     await message.answer("Омбор бўлими 👇", reply_markup=mineral_menu)
 
 
-@router.message(F.text.in_({"🌾 Оғит омбор (барча Warehouse)", "🌾 Минерал ўғит омбори"}))
+@router.message(F.text.in_({"🌾 Оғит омбор", "🌾 Оғит омбор (барча Warehouse)", "🌾 Минерал ўғит омбори"}))
 @access_required
 async def warehouse_summary_handler(message: Message):
     await message.answer(
-        "🌾 Оғит омбор (барча Warehouse)\n\nҚуйидаги тугмалардан керакли бўлимни танланг 👇",
+        "🌾 Оғит омбори\n\nҚуйидаги тугмалардан керакли бўлимни танланг 👇",
         reply_markup=warehouse_menu,
     )
 
@@ -83,6 +84,24 @@ async def warehouse_expenses_handler(message: Message):
         farmer_name = item.get("farmer_name") or "-"
         quantity = float(item.get("quantity") or 0)
         lines.append(f"{index}. {date} | {farmer_name} | Миқдор: {quantity:.2f}")
+
+    text = "\n".join(lines)
+    await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
+
+
+@router.message(F.text == "🧾 Омборлар")
+@access_required
+async def warehouse_list_handler(message: Message):
+    warehouses = await get_warehouses()
+
+    if not warehouses:
+        await message.answer("Омборлар рўйхати бўш", reply_markup=warehouse_menu)
+        return
+
+    lines = ["🧾 Омборлар рўйхати (Warehouse)", ""]
+
+    for index, item in enumerate(warehouses, start=1):
+        lines.append(f"{index}. ID: {item.get('id', '-') } | Номи: {item.get('name', '-')}")
 
     text = "\n".join(lines)
     await message.answer(f"<pre>{text}</pre>", parse_mode="HTML", reply_markup=warehouse_menu)
