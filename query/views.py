@@ -12,6 +12,9 @@ def home(request):
 
 @login_required(login_url="login")
 def farmer_report(request):
+
+
+    
     return render(request, "query/farmer_report.html")
 
 
